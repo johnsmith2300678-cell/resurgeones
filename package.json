@@ -2,6 +2,7 @@
   "name": "resurge-glm5-proxy",
   "version": "1.0.0",
   "description": "ResurgeAI GLM-5 proxy server for Janitor AI — fixes mid-sentence stopping and enhances roleplay",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
