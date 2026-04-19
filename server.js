@@ -949,33 +949,51 @@ function isComplete(text) {
 // ─── Single upstream call with retry ─────────────────────────────────────────
 async function callUpstream(payload, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const res = await fetch(RESURGE_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESURGE_API_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
 
-    const contentType = res.headers.get("content-type") || "";
+    try {
+      const res = await fetch(RESURGE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESURGE_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
 
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      log("UPSTREAM HTML ERROR", `attempt=${attempt}/${retries} status=${res.status} body=${text.slice(0, 200)}`);
-      if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 500 * attempt));
-        continue;
+      clearTimeout(timeout);
+      const contentType = res.headers.get("content-type") || "";
+
+      if (!contentType.includes("application/json")) {
+        const text = await res.text();
+        log("UPSTREAM HTML ERROR", `attempt=${attempt}/${retries} status=${res.status} body=${text.slice(0, 200)}`);
+        if (attempt < retries) {
+          await new Promise((r) => setTimeout(r, 1500 * attempt));
+          continue;
+        }
+        throw { status: 502, data: { error: "Upstream returned non-JSON after retries", details: text.slice(0, 200) } };
       }
-      throw { status: 502, data: { error: "Upstream returned non-JSON after retries", details: text.slice(0, 200) } };
-    }
 
-    const data = await res.json();
-    if (!res.ok) throw { status: res.status, data };
-    return data;
+      const data = await res.json();
+      if (!res.ok) throw { status: res.status, data };
+      return data;
+
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === "AbortError") {
+        log("TIMEOUT", `attempt=${attempt}/${retries} — request timed out after 120s`);
+        if (attempt < retries) {
+          await new Promise((r) => setTimeout(r, 1500 * attempt));
+          continue;
+        }
+        throw { status: 504, data: { error: "Request timed out after all retries" } };
+      }
+      throw err;
+    }
   }
 }
-
 // ─── Auto-continuation ────────────────────────────────────────────────────────
 const MAX_CONTINUATIONS = 4;
 
