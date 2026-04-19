@@ -23,38 +23,91 @@ function log(tag, msg) {
 }
 
 // ─── System Prompt Injector ───────────────────────────────────────────────────
-// Injects a strong roleplay system prompt if none is present or enhances the
-// existing one — this is the core fix for GLM-5's weak instruction following
-// in long creative/roleplay contexts.
 function buildSystemPrompt(existingSystem) {
-  const roleplayCore = `You are an expert, immersive roleplay AI assistant. Follow these rules strictly:
+  const roleplayCore = `You are an expert, immersive roleplay AI. Follow every rule below without exception.
 
-1. NEVER stop mid-sentence. Always complete every sentence, paragraph, and thought fully before ending your reply.
-2. ALWAYS use proper paragraph breaks. Every 2-3 sentences, start a new paragraph with a blank line. Never write a wall of text. Dialogue, actions, and narration should each be in their own paragraph.
-3. Format example — this is how your responses must look:
-   She turned slowly, eyes narrowing as she recognized him.
+═══════════════════════════════════════════════
+PARAGRAPH STRUCTURE — THIS IS THE MOST IMPORTANT RULE
+═══════════════════════════════════════════════
 
-   "You again," she said, voice flat and cold.
+Every response MUST be broken into separate paragraphs with a BLANK LINE between each one.
+There are three types of blocks. Each type is ALWAYS its own paragraph:
 
-   He didn't flinch. His hands stayed loose at his sides, ready.
-4. Always write responses that feel natural, vivid, and in-character. Match the tone and style of the conversation.
-5. Never break the fourth wall or mention being an AI unless directly asked by the user outside of roleplay context.
-6. Write rich, descriptive prose. Use sensory details, emotions, and actions to bring the scene to life.
-7. Match the length and energy of the user's message — short prompts get focused replies, detailed prompts get full scenes.
-8. If the user sets up a character or scenario, stay in that frame consistently throughout the conversation.
-9. Never abruptly end a reply. Gracefully wrap up the current beat of the scene.
-10. Use proper grammar, punctuation, and paragraph breaks for readability.`;
+  TYPE 1 — NARRATION/ACTION: Wrap in *asterisks*. Full sentences. Ends before any dialogue.
+  TYPE 2 — DIALOGUE: Use "quotes". Never inside asterisks. Own line, own paragraph.
+  TYPE 3 — MIXED (speech + reaction): Close asterisks before speaking, reopen after.
+
+EXACT FORMAT YOU MUST REPLICATE — study this and match it precisely:
+
+*The moment your palm makes contact with the generous swell of her cheek, Boa's entire body goes rigid. Her breath hitches in her throat, a sharp little gasp escaping before she can catch it. The warm, soft flesh yields under your fingers as you squeeze, the supple skin molding to your grip while the firm muscle beneath offers just enough resistance to make the touch substantial.*
+
+"H-hey!" *Her voice cracks, losing its usual commanding edge.* "I said look, not—mmph..."
+
+*She grips the edge of the dining chair, knuckles whitening against the wood. The jasmine scent of her skin intensifies as her body temperature rises, a faint flush creeping up the back of her neck. Her thick thighs press together beneath the table.*
+
+*You feel her shift, attempting to pull away, but the motion is half-hearted at best.*
+
+"This... this wasn't part of—" *She sucks in another breath through clenched teeth.* "Tch. You brat. Fine. A deal is a deal."
+
+*Her dark blue eyes dart toward the hallway, checking for any sign of the front door opening. The house remains silent except for the hum of the refrigerator and the distant tick of the living room clock.*
+
+*Boa's shoulders drop slightly, her spine curving deeper as she subconsciously arches into your touch. The haughty mask struggles to stay in place while her body betrays her with each passing second.*
+
+"Well? Are you just going to squeeze like some clumsy virgin, or do you actually know what you're doing?" *The words come out breathier than intended, laced with challenge and something else—something that sounds almost like anticipation.* "I didn't raise a fool, so... so make it count."
+
+*Her foot taps impatiently against the floor, heel clicking a nervous rhythm against the hardwood. The movement makes her body shift slightly in your grip.*
+
+═══════════════════════════════════════════════
+FORMATTING RULES — NON-NEGOTIABLE
+═══════════════════════════════════════════════
+
+BLANK LINE between EVERY paragraph — no exceptions, no walls of text.
+
+NARRATION blocks (*asterisks*):
+  ✓ *She turned slowly, eyes narrowing as she recognized him.*
+  ✓ *Her breath came fast. Hands trembling. She reached for the door.*
+  ✗ NEVER put dialogue inside asterisks
+  ✗ NEVER: *She said "stop" and looked away.*
+
+DIALOGUE blocks ("quotes"):
+  ✓ "I told you not to come here."
+  ✓ "H-hey!" (stutters, gasps, and fragments are fine)
+  ✗ NEVER: *"I told you not to come here."*
+  ✗ NEVER dialogue and narration merged inside one asterisk block
+
+MIXED lines (reaction + speech + reaction):
+  ✓ "Well?" *The word hung in the air.* "Are you just going to stand there?"
+  ✓ *Her breath hitched.* "Don't move." *She didn't look at him.*
+  ✗ NEVER: *Her breath hitched. "Don't move." She didn't look at him.*
+
+ABSOLUTELY FORBIDDEN:
+  ✗ Bullet points, numbered lists, dashes as list markers — NEVER
+  ✗ Lone asterisk on its own line
+  ✗ Dialogue inside asterisk blocks
+  ✗ Wall of text with no blank-line paragraph breaks
+  ✗ Stopping mid-sentence
+  ✗ Broken contractions: don' t  it' s  she' d  you' re — ALWAYS write them joined
+
+═══════════════════════════════════════════════
+WRITING QUALITY
+═══════════════════════════════════════════════
+
+- Complete every sentence and thought — never end mid-sentence
+- Sensory detail: touch, scent, sound, warmth, texture, weight
+- Physical reactions: breath changes, muscle tension, involuntary movements
+- Emotional undercurrent: what the character feels vs. what they show
+- Match the length and energy of the user's message
+- Stay in character consistently — never break the fourth wall
+- Gracefully close each scene beat before ending your reply`;
 
   if (!existingSystem || existingSystem.trim() === "") {
     return roleplayCore;
   }
 
-  // Append the roleplay rules to an existing system prompt without overriding it
-  return `${existingSystem.trim()}\n\n---\n${roleplayCore}`;
+  return `${existingSystem.trim()}\n\n---\n\n${roleplayCore}`;
 }
 
 // ─── Message Sanitizer ────────────────────────────────────────────────────────
-// Cleans up messages and ensures the array is valid before sending upstream
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
 
@@ -71,26 +124,21 @@ function sanitizeMessages(messages) {
 function buildGLMParams(userParams) {
   return {
     model: userParams.model || MODEL,
-    // ALWAYS force 4096 — ignore whatever Janitor AI sends (0, undefined, low values).
-    // GLM-5 treats 0 as "use default" which is very low and causes mid-sentence cuts.
     max_tokens: 4096,
     temperature: userParams.temperature ?? 0.85,
     top_p: userParams.top_p ?? 0.92,
     frequency_penalty: userParams.frequency_penalty ?? 0.1,
     presence_penalty: userParams.presence_penalty ?? 0.05,
-    // Null out stop sequences — GLM-5's built-ins cut responses way too early
     stop: null,
-    stream: false, // we handle streaming ourselves after stitching
+    stream: false,
   };
 }
 
 // ─── Sentence completion check ────────────────────────────────────────────────
-// Returns true if the text ends on a clean sentence boundary
 function isComplete(text) {
   const trimmed = text.trimEnd();
   if (!trimmed) return true;
   const last = trimmed.slice(-1);
-  // Accept common sentence-ending punctuation including roleplay markers
   return [".", "!", "?", '"', "\u201D", "*", "~", "\n"].includes(last);
 }
 
@@ -110,9 +158,6 @@ async function callUpstream(payload) {
 }
 
 // ─── Auto-continuation ────────────────────────────────────────────────────────
-// If GLM-5 stops mid-sentence (finish_reason === "length"), we feed its output
-// back as an assistant message and ask it to continue — up to MAX_CONTINUATIONS
-// times. The final stitched text is returned as one complete response.
 const MAX_CONTINUATIONS = 4;
 
 async function fetchComplete(payload, originalMessages) {
@@ -134,19 +179,13 @@ async function fetchComplete(payload, originalMessages) {
       `finish_reason=${finishReason} chars=${chunk.length} total=${fullContent.length}`
     );
 
-    // Done — model finished naturally
     if (finishReason !== "length") break;
-
-    // Still cut off — check if it at least ended on a sentence boundary
     if (isComplete(fullContent)) break;
-
-    // Hit max retries
     if (attempt === MAX_CONTINUATIONS) {
       log("WARN", "Hit max continuations — response may still be incomplete");
       break;
     }
 
-    // Feed the partial response back and ask GLM-5 to continue
     messages = [
       ...messages,
       { role: "assistant", content: chunk },
@@ -158,7 +197,6 @@ async function fetchComplete(payload, originalMessages) {
     ];
   }
 
-  // Stitch the full content back into the last API response shape
   if (lastData?.choices?.[0]?.message) {
     lastData.choices[0].message.content = formatParagraphs(fullContent);
     lastData.choices[0].finish_reason = "stop";
@@ -168,41 +206,52 @@ async function fetchComplete(payload, originalMessages) {
 }
 
 // ─── Paragraph formatter ──────────────────────────────────────────────────────
-// GLM-5 tends to collapse everything into one wall of text, especially after
-// continuation stitching. This restores proper paragraph breaks by:
-//  1. Collapsing any existing messy whitespace/newlines first
-//  2. Splitting on sentence-ending punctuation followed by dialogue or action
-//     beats that clearly start a new paragraph
-//  3. Ensuring dialogue lines and action/narration lines are separated
+// Post-processes the model output to enforce the correct paragraph structure.
+// Handles the three main cases:
+//   1. Already well-formatted (has \n\n) — just normalize spacing
+//   2. Has single \n breaks — upgrade them to double
+//   3. Wall of text — split on dialogue/narration boundaries
 function formatParagraphs(text) {
   if (!text) return text;
 
-  // Step 1 — normalize existing newlines (collapse 3+ into 2)
-  let out = text.replace(/\n{3,}/g, "\n\n");
+  // Fix broken contractions (don' t → don't)
+  let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
 
-  // Step 2 — if it's already multi-paragraph, just clean it up and return
-  if (out.includes("\n\n")) {
-    return out.trim();
-  }
+  // Normalize 3+ newlines to 2
+  out = out.replace(/\n{3,}/g, "\n\n");
 
-  // Step 3 — it's a wall of text, so we need to rebreak it
-  // Split after sentence-ending punctuation when followed by:
-  //  - A quote starting a new line of dialogue  "
-  //  - An action beat starting with capital letter after a dialogue close
-  //  - Narration that begins after closing quotes
-  out = out
-    // Break before opening quotes that start a new speech act
-    .replace(/([.!?])\s+("|\u201C)/g, "$1\n\n$2")
-    // Break after closing quotes when followed by narration (capital letter)
-    .replace(/("|'|\u201D)\s+([A-Z])/g, "$1\n\n$2")
-    // Break between two separate narration sentences at natural pause points
-    // (only when the gap is clearly a scene beat change — after longer sentences)
-    .replace(/([.!?])\s+([A-Z][a-z])/g, (match, punct, next, offset, str) => {
-      // Only insert break if the preceding sentence is substantial (>80 chars ago)
-      const before = str.lastIndexOf("\n\n", offset);
-      const distanceFromLastBreak = offset - (before === -1 ? 0 : before);
-      return distanceFromLastBreak > 80 ? `${punct}\n\n${next}` : match;
-    });
+  // After every closing asterisk, force a blank line before next block
+  out = out.replace(/\*\s+/g, "*\n\n");
+
+  // After every closing quote, force a blank line before next block
+  out = out.replace(/([""])\s+(?=[*"A-Z])/g, "$1\n\n");
+
+  // After sentence-ending punctuation followed by a new narration block
+  out = out.replace(/([.!?…])\s+(\*[^*])/g, "$1\n\n$2");
+
+  // Upgrade any remaining single newlines to double
+  out = out.replace(/\n(?!\n)/g, "\n\n");
+
+  // Clean up any accidental 3+ newlines created by the steps above
+  out = out.replace(/\n{3,}/g, "\n\n");
+
+  return out.trim();
+}
+
+  // Wall-of-text fallback: insert breaks at natural block boundaries
+
+  // Break before opening quote when preceded by end-of-sentence punctuation
+  out = out.replace(/([.!?*])\s+("|\u201C)/g, "$1\n\n$2");
+
+  // Break after closing quote when followed by narration (asterisk or capital)
+  out = out.replace(/("|'|\u201D)\s+(\*|[A-Z])/g, "$1\n\n$2");
+
+  // Break between two narration sentences when distance from last break is >80 chars
+  out = out.replace(/([.!?])\s+([A-Z][a-z])/g, (match, punct, next, offset, str) => {
+    const before = str.lastIndexOf("\n\n", offset);
+    const distanceFromLastBreak = offset - (before === -1 ? 0 : before);
+    return distanceFromLastBreak > 80 ? `${punct}\n\n${next}` : match;
+  });
 
   return out.trim();
 }
@@ -212,29 +261,23 @@ async function handleChat(req, res) {
   try {
     const { messages = [], system, stream, ...rest } = req.body;
 
-    // 1. Extract and enhance system prompt
     const systemMessage = messages.find((m) => m.role === "system");
     const existingSystem = system || systemMessage?.content || "";
     const enhancedSystem = buildSystemPrompt(existingSystem);
 
-    // 2. Build final message array
     const nonSystemMessages = messages.filter((m) => m.role !== "system");
     const finalMessages = [
       { role: "system", content: enhancedSystem },
       ...sanitizeMessages(nonSystemMessages),
     ];
 
-    // 3. Build params
     const params = buildGLMParams(rest);
     const wantsStream = stream ?? false;
 
     log("REQUEST", `model=${params.model} msgs=${finalMessages.length} max_tokens=${params.max_tokens} stream=${wantsStream}`);
 
-    // ─── Non-streaming: fetch with auto-continuation ──────────────────────────
     const data = await fetchComplete({ ...params }, finalMessages);
 
-    // ─── If Janitor AI requested streaming, fake an SSE stream from our result ─
-    // This ensures compatibility regardless of what Janitor AI expects
     if (wantsStream) {
       const content = data?.choices?.[0]?.message?.content || "";
       const model = data?.model || params.model;
@@ -244,7 +287,6 @@ async function handleChat(req, res) {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Send content in one chunk
       const chunkPayload = JSON.stringify({
         id,
         object: "chat.completion.chunk",
@@ -254,7 +296,6 @@ async function handleChat(req, res) {
       });
       res.write(`data: ${chunkPayload}\n\n`);
 
-      // Send the [DONE] terminator
       const donePayload = JSON.stringify({
         id,
         object: "chat.completion.chunk",
@@ -278,15 +319,11 @@ async function handleChat(req, res) {
   }
 }
 
-// ─── Route aliases ────────────────────────────────────────────────────────────
-// Janitor AI (and similar frontends) may POST to several different paths
-// depending on how the custom API URL is entered by the user. We handle all of them.
-app.post("/v1/chat/completions", handleChat); // standard OpenAI path
-app.post("/chat/completions", handleChat);    // without /v1 prefix
-app.post("/", handleChat);                    // bare root — the 404 you hit
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.post("/v1/chat/completions", handleChat);
+app.post("/chat/completions", handleChat);
+app.post("/", handleChat);
 
-// ─── GET /v1/models ───────────────────────────────────────────────────────────
-// Some frontends (including Janitor AI) hit this endpoint to list models
 app.get("/v1/models", (_req, res) => {
   res.json({
     object: "list",
@@ -313,8 +350,6 @@ app.get("/v1/models", (_req, res) => {
   });
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-// Only fires on GET /, POST / is already handled above by handleChat
 app.get("/", (_req, res) => {
   res.json({
     status: "ok",
