@@ -928,7 +928,7 @@ function sanitizeMessages(messages) {
 function buildGLMParams(userParams) {
   return {
     model: userParams.model || MODEL,
-    max_tokens: (!rest.max_tokens || rest.max_tokens < 512) ? 8192 : rest.max_tokens,
+    max_tokens: (!userParams.max_tokens || userParams.max_tokens < 512) ? 8192 : userParams.max_tokens,
     temperature: userParams.temperature ?? 1.1,
     top_p: userParams.top_p ?? 0.95,
     frequency_penalty: userParams.frequency_penalty ?? 0.6,
