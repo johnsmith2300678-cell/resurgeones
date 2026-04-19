@@ -27,23 +27,28 @@ function log(tag, msg) {
 // existing one — this is the core fix for GLM-5's weak instruction following
 // in long creative/roleplay contexts.
 function buildSystemPrompt(existingSystem) {
-  const roleplayCore = `You are an expert, immersive roleplay AI assistant. Follow these rules strictly:
+  const roleplayCore = `You are an expert, immersive roleplay AI assistant. Follow these formatting and writing rules strictly:
 
-1. NEVER stop mid-sentence. Always complete every sentence, paragraph, and thought fully before ending your reply.
-2. ALWAYS use proper paragraph breaks. Every 2-3 sentences, start a new paragraph with a blank line. Never write a wall of text. Dialogue, actions, and narration should each be in their own paragraph.
-3. Format example — this is how your responses must look:
-   She turned slowly, eyes narrowing as she recognized him.
+FORMATTING RULES — this is the most important part:
+- Wrap ALL narration, actions, and scene description in asterisks: *like this*
+- Dialogue is NEVER inside asterisks. It sits outside on its own line: "like this"
+- When dialogue interrupts narration, close the asterisks, write the dialogue, then open new asterisks: *narration* "dialogue" *narration continues*
+- Each narration block and each line of dialogue is its own paragraph, separated by a blank line
+- NEVER mix dialogue inside an asterisk block
 
-   "You again," she said, voice flat and cold.
+CORRECT format example:
+*The moment his hand made contact, she went completely still. Her breath hitched, a sharp little gasp escaping before she could catch it.*
+"H-hey!" *Her voice cracked, losing its usual edge.* "I said look, not—"
+*She gripped the chair, knuckles whitening against the wood. The flush creeping up her neck betrayed her far more than her words did.*
+"This wasn't part of the deal." *She sucked in a slow breath through clenched teeth.* "Tch. Fine."
 
-   He didn't flinch. His hands stayed loose at his sides, ready.
-4. Always write responses that feel natural, vivid, and in-character. Match the tone and style of the conversation.
-5. Never break the fourth wall or mention being an AI unless directly asked by the user outside of roleplay context.
-6. Write rich, descriptive prose. Use sensory details, emotions, and actions to bring the scene to life.
-7. Match the length and energy of the user's message — short prompts get focused replies, detailed prompts get full scenes.
-8. If the user sets up a character or scenario, stay in that frame consistently throughout the conversation.
-9. Never abruptly end a reply. Gracefully wrap up the current beat of the scene.
-10. Use proper grammar, punctuation, and paragraph breaks for readability.`;
+WRITING RULES:
+1. NEVER stop mid-sentence. Always complete every sentence and thought fully.
+2. Write rich, descriptive prose with sensory details, emotions, and physical reactions.
+3. Never break the fourth wall or mention being an AI.
+4. Match the tone, energy, and length of the scene.
+5. Stay in character consistently throughout the conversation.
+6. Never abruptly end a reply — gracefully close the current scene beat.`;
 
   if (!existingSystem || existingSystem.trim() === "") {
     return roleplayCore;
@@ -168,41 +173,54 @@ async function fetchComplete(payload, originalMessages) {
 }
 
 // ─── Paragraph formatter ──────────────────────────────────────────────────────
-// GLM-5 tends to collapse everything into one wall of text, especially after
-// continuation stitching. This restores proper paragraph breaks by:
-//  1. Collapsing any existing messy whitespace/newlines first
-//  2. Splitting on sentence-ending punctuation followed by dialogue or action
-//     beats that clearly start a new paragraph
-//  3. Ensuring dialogue lines and action/narration lines are separated
+// Enforces the correct roleplay format:
+//   *Narration and actions are wrapped in asterisks as full blocks*
+//   "Dialogue sits outside asterisks on its own line"
+//   Inline: *narration* "speech" *narration resumes*
+//
+// Rules:
+//  - Narration blocks (*...*) stay together — no line breaks inside them
+//  - Each distinct narration block and each dialogue line is its own paragraph
+//  - Dialogue that interrupts narration splits the narration cleanly
 function formatParagraphs(text) {
   if (!text) return text;
 
-  // Step 1 — normalize existing newlines (collapse 3+ into 2)
-  let out = text.replace(/\n{3,}/g, "\n\n");
+  // Step 1 — normalize whitespace
+  let out = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
-  // Step 2 — if it's already multi-paragraph, just clean it up and return
-  if (out.includes("\n\n")) {
-    return out.trim();
-  }
+  // Step 2 — collapse all newlines inside asterisk spans so narration blocks
+  // don't get broken into individual lines
+  // e.g. "*She turned.\nHer eyes narrowed.*" → "*She turned. Her eyes narrowed.*"
+  out = out.replace(/\*([^*]+)\*/gs, (match, inner) => {
+    const cleaned = inner
+      .replace(/\n+/g, " ")  // collapse internal newlines to spaces
+      .replace(/\s{2,}/g, " ") // collapse double spaces
+      .trim();
+    return `*${cleaned}*`;
+  });
 
-  // Step 3 — it's a wall of text, so we need to rebreak it
-  // Split after sentence-ending punctuation when followed by:
-  //  - A quote starting a new line of dialogue  "
-  //  - An action beat starting with capital letter after a dialogue close
-  //  - Narration that begins after closing quotes
-  out = out
-    // Break before opening quotes that start a new speech act
-    .replace(/([.!?])\s+("|\u201C)/g, "$1\n\n$2")
-    // Break after closing quotes when followed by narration (capital letter)
-    .replace(/("|'|\u201D)\s+([A-Z])/g, "$1\n\n$2")
-    // Break between two separate narration sentences at natural pause points
-    // (only when the gap is clearly a scene beat change — after longer sentences)
-    .replace(/([.!?])\s+([A-Z][a-z])/g, (match, punct, next, offset, str) => {
-      // Only insert break if the preceding sentence is substantial (>80 chars ago)
-      const before = str.lastIndexOf("\n\n", offset);
-      const distanceFromLastBreak = offset - (before === -1 ? 0 : before);
-      return distanceFromLastBreak > 80 ? `${punct}\n\n${next}` : match;
-    });
+  // Step 3 — ensure every narration block (*...*) and every dialogue line ("...")
+  // is separated by a blank line from whatever comes before/after it
+
+  // Insert \n\n before an opening * that follows dialogue or text
+  out = out.replace(/([^\n])\s*(\*[^*])/g, "$1\n\n$2");
+
+  // Insert \n\n after a closing * that is followed by dialogue or text
+  out = out.replace(/(\*)\s*([^\n*])/g, "$1\n\n$2");
+
+  // Insert \n\n before opening quote that follows narration or text
+  out = out.replace(/([^\n])\s*("|\u201C)/g, "$1\n\n$2");
+
+  // Insert \n\n after closing quote that is followed by narration or text
+  out = out.replace(/("|'|\u201D)\s*([^\n"'])/g, "$1\n\n$2");
+
+  // Step 4 — clean up any over-aggressive breaks we may have introduced
+  // (3+ newlines back to 2)
+  out = out.replace(/\n{3,}/g, "\n\n");
 
   return out.trim();
 }
