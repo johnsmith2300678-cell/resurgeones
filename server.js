@@ -206,11 +206,6 @@ async function fetchComplete(payload, originalMessages) {
 }
 
 // ─── Paragraph formatter ──────────────────────────────────────────────────────
-// Post-processes the model output to enforce the correct paragraph structure.
-// Handles the three main cases:
-//   1. Already well-formatted (has \n\n) — just normalize spacing
-//   2. Has single \n breaks — upgrade them to double
-//   3. Wall of text — split on dialogue/narration boundaries
 function formatParagraphs(text) {
   if (!text) return text;
 
@@ -234,24 +229,6 @@ function formatParagraphs(text) {
 
   // Clean up any accidental 3+ newlines created by the steps above
   out = out.replace(/\n{3,}/g, "\n\n");
-
-  return out.trim();
-}
-
-  // Wall-of-text fallback: insert breaks at natural block boundaries
-
-  // Break before opening quote when preceded by end-of-sentence punctuation
-  out = out.replace(/([.!?*])\s+("|\u201C)/g, "$1\n\n$2");
-
-  // Break after closing quote when followed by narration (asterisk or capital)
-  out = out.replace(/("|'|\u201D)\s+(\*|[A-Z])/g, "$1\n\n$2");
-
-  // Break between two narration sentences when distance from last break is >80 chars
-  out = out.replace(/([.!?])\s+([A-Z][a-z])/g, (match, punct, next, offset, str) => {
-    const before = str.lastIndexOf("\n\n", offset);
-    const distanceFromLastBreak = offset - (before === -1 ? 0 : before);
-    return distanceFromLastBreak > 80 ? `${punct}\n\n${next}` : match;
-  });
 
   return out.trim();
 }
