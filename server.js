@@ -2,72 +2,40 @@ import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import { config } from "dotenv";
- 
+
 config();
- 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
- 
+
 const RESURGE_API_URL = "https://api.resurge.one/v1/chat/completions";
 const RESURGE_API_KEY = process.env.RESURGE_API_KEY || "";
 const MODEL = process.env.MODEL || "glm-5";
-const MAX_CONTINUATIONS = 4;
- 
+
+// Max times we retry a cut-off response before giving up
+const MAX_CONTINUATIONS = 5;
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
- 
+
 function log(tag, msg) {
   console.log(`[${new Date().toISOString()}] [${tag}] ${msg}`);
 }
- 
+
+// ─── System prompt ────────────────────────────────────────────────────────────
 function buildSystemPrompt(existing) {
-  const core = `You are an expert roleplay writer. Follow these rules on every single response. No exceptions.
- 
-FORMATTING — READ THIS CAREFULLY:
- 
-1. Narration and actions go inside asterisks as full paragraphs:
-*She turned slowly, eyes scanning the room. Her breath came in shallow pulls, tension visible in every line of her body.*
- 
-2. When the character speaks, use "quotes" only. NEVER put speech inside asterisks:
-CORRECT: "I told you not to come here."
-CORRECT: "H-hey!" *Her voice cracked.* "I said look, not—mmph..."
-WRONG: *"I told you not to come here."*
-WRONG: *She said "stop" and turned away.*
- 
-3. When speech and narration mix on the same beat, close asterisks before speech and reopen after:
-CORRECT: *Her breath hitched.* "Don't move." *She didn't look at him.*
-CORRECT: "Well?" *The word hung in the air.* "Are you just going to stand there?"
-WRONG: *Her breath hitched. "Don't move." She didn't look at him.*
- 
-4. Every narration block and every line of dialogue is its own paragraph with a blank line between them:
-*The moment his hand made contact, she went completely still. A sharp gasp escaped before she could catch it.*
- 
-"H-hey!" *Her voice cracked, losing its usual edge.* "I said look, not—"
- 
-*She gripped the chair, knuckles whitening against the wood.*
- 
-"This wasn't part of the deal." *She sucked in a breath through clenched teeth.* "Tch. Fine."
- 
-STRICTLY FORBIDDEN — never do any of these:
-- Bullet points or lists of any kind (no bullet, dash, numbered lists)
-- Lone quote marks on their own line
-- Asterisk on its own line with text below it
-- Dialogue inside asterisk blocks
-- Broken apostrophes like: don' t  it' s  she' d  you' re
-- Wall of text with no paragraph breaks — EVERY narration block and EVERY line of dialogue MUST be its own separate paragraph with a blank line between them. Never run them together.
-- Stopping mid-sentence
- 
-WRITING:
-- Complete every sentence and thought fully, never stop mid-sentence
-- Write vivid, immersive prose with sensory detail and physical reactions
-- Never break character or mention being an AI
-- Match the tone and energy of the scene
-- Gracefully close each scene beat`;
- 
+  const core = `You are a creative, immersive roleplay writer. Rules:
+- ALWAYS finish every sentence completely. Never stop mid-sentence or mid-word.
+- Stay fully in character at all times.
+- Write vivid, descriptive prose with emotions, actions, and sensory detail.
+- Never mention being an AI or break the fourth wall.
+- Always end your reply on a complete sentence with proper punctuation.`;
+
   if (!existing || !existing.trim()) return core;
   return `${existing.trim()}\n\n---\n${core}`;
 }
- 
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
   return messages
@@ -78,49 +46,16 @@ function sanitizeMessages(messages) {
     }))
     .filter((m) => m.content !== "");
 }
- 
-function cleanOutput(text) {
-  if (!text) return text;
- 
-  let out = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
- 
-  // Fix broken apostrophes: don' t -> don't
-  out = out.replace(/(\w)'\s+(\w)/g, "$1'$2");
- 
-  // Strip bullet points and numbered lists
-  out = out.replace(/^[ \t]*[•\-]\s+/gm, "");
-  out = out.replace(/^[ \t]*\d+\.\s+/gm, "");
- 
-  // ── Paragraph separation ──────────────────────────────────────────────────
-  // Ensure narration blocks (*...*) and dialogue ("...") are always separated
-  // by a blank line. This is the main fix for the wall-of-text problem.
- 
-  // Blank line after a closing * before anything that isn't a newline or *
-  out = out.replace(/\*\n?([^*\n])/g, "*\n\n$1");
- 
-  // Blank line before an opening * after anything that isn't a newline or *
-  out = out.replace(/([^*\n])\n?\*/g, "$1\n\n*");
- 
-  // Blank line after closing quote before anything that isn't a newline or quote
-  out = out.replace(/"\n?([^"\n*])/g, '"\n\n$1');
- 
-  // Blank line before opening quote after anything that isn't a newline or quote
-  out = out.replace(/([^"\n*])\n?"/g, '$1\n\n"');
- 
-  // Collapse 3+ consecutive newlines down to exactly 2 (one blank line)
-  out = out.replace(/\n{3,}/g, "\n\n");
- 
-  return out.trim();
-}
- 
+
 function isComplete(text) {
-  const t = text.trimEnd();
+  const t = (text || "").trimEnd();
   if (!t) return true;
-  return [".", "!", "?", '"', "\u201D", "*", "~"].includes(t.slice(-1));
+  return [".", "!", "?", '"', "\u201D", "*", "~", ")"].includes(t.slice(-1));
 }
- 
+
+// ─── Upstream call ────────────────────────────────────────────────────────────
 async function callUpstream(payload) {
-  const res = await fetch(RESURGE_API_URL, {
+  const response = await fetch(RESURGE_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -128,113 +63,150 @@ async function callUpstream(payload) {
     },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok) throw { status: res.status, data };
+
+  const data = await response.json();
+  if (!response.ok) throw { status: response.status, data };
   return data;
 }
- 
+
+// ─── Auto-continuation ────────────────────────────────────────────────────────
+// If GLM-5 hits the token limit mid-sentence, we loop:
+//   1. Feed its partial reply back as an assistant message
+//   2. Ask it to continue from exactly where it stopped
+//   3. Stitch all pieces together into one clean response
 async function fetchComplete(params, messages) {
   let fullContent = "";
   let lastData = null;
   let currentMessages = [...messages];
- 
+
   for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
     const data = await callUpstream({ ...params, messages: currentMessages });
     lastData = data;
- 
+
     const choice = data?.choices?.[0];
-    const chunk = choice?.message?.content || "";
+    const chunk = (choice?.message?.content || "").trimEnd();
     const finishReason = choice?.finish_reason;
- 
-    fullContent += chunk;
+
+    fullContent += (attempt > 0 && fullContent && !fullContent.endsWith(" ") ? " " : "") + chunk;
+
     log(
       attempt === 0 ? "RESPONSE" : `CONTINUE-${attempt}`,
-      `finish_reason=${finishReason} chars=${chunk.length} total=${fullContent.length}`
+      `finish=${finishReason} chunk=${chunk.length} total=${fullContent.length}`
     );
- 
+
+    // Natural finish — we're done
     if (finishReason !== "length") break;
-    if (isComplete(fullContent)) break;
-    if (attempt === MAX_CONTINUATIONS) {
-      log("WARN", "Hit max continuations");
+
+    // Hit length limit but text ends cleanly — fine
+    if (isComplete(fullContent)) {
+      log("INFO", "Hit length limit but text ends cleanly — no continuation needed");
       break;
     }
- 
+
+    // Hit max retries
+    if (attempt === MAX_CONTINUATIONS) {
+      log("WARN", `Hit max continuations (${MAX_CONTINUATIONS}) — response may still be incomplete`);
+      break;
+    }
+
+    // Feed partial reply back and ask GLM-5 to continue
+    log("INFO", `Response cut off mid-sentence — requesting continuation ${attempt + 1}/${MAX_CONTINUATIONS}`);
     currentMessages = [
       ...currentMessages,
       { role: "assistant", content: chunk },
       {
         role: "user",
-        content: "Continue your previous response. Pick up exactly where you left off. Do not repeat anything. Do not add any preamble.",
+        content:
+          "[SYSTEM: Your previous reply was cut off mid-sentence. Continue from exactly where you stopped. Do NOT repeat anything. Do NOT add any intro or preamble. Just continue the sentence naturally.]",
       },
     ];
   }
- 
+
+  // Write the stitched content back into the response object
   if (lastData?.choices?.[0]?.message) {
-    lastData.choices[0].message.content = cleanOutput(fullContent);
+    lastData.choices[0].message.content = fullContent;
     lastData.choices[0].finish_reason = "stop";
   }
- 
+
   return lastData;
 }
- 
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
 async function handleChat(req, res) {
   try {
     const { messages = [], system, stream, ...rest } = req.body;
- 
-    const systemMessage = messages.find((m) => m.role === "system");
-    const existingSystem = system || systemMessage?.content || "";
-    const enhancedSystem = buildSystemPrompt(existingSystem);
- 
-    const nonSystemMessages = messages.filter((m) => m.role !== "system");
+
+    // Build system prompt
+    const systemMsg = messages.find((m) => m.role === "system");
+    const existing = system || systemMsg?.content || "";
+    const enhancedSystem = buildSystemPrompt(existing);
+
+    const nonSystem = messages.filter((m) => m.role !== "system");
     const finalMessages = [
       { role: "system", content: enhancedSystem },
-      ...sanitizeMessages(nonSystemMessages),
+      ...sanitizeMessages(nonSystem),
     ];
- 
+
+    // ── Token handling ───────────────────────────────────────────────────────
+    // Janitor AI sends max_tokens=0 when the user sets it to 0 ("unlimited").
+    // GLM-5 treats 0 as literally 0 tokens which causes immediate cutoff.
+    // We always override with a safe high value. 8192 covers even long scenes.
+    const incomingTokens = rest.max_tokens;
+    const maxTokens =
+      !incomingTokens || incomingTokens < 512 ? 8192 : incomingTokens;
+
     const params = {
       model: rest.model || MODEL,
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       temperature: rest.temperature ?? 0.85,
       top_p: rest.top_p ?? 0.92,
       frequency_penalty: rest.frequency_penalty ?? 0.1,
       presence_penalty: rest.presence_penalty ?? 0.05,
-      stop: null,
+      stop: null, // clear GLM-5's aggressive built-in stop sequences
       stream: false,
     };
- 
+
     const wantsStream = stream ?? false;
-    log("REQUEST", `model=${params.model} msgs=${finalMessages.length} stream=${wantsStream}`);
- 
+    log("REQUEST", `model=${params.model} msgs=${finalMessages.length} max_tokens=${params.max_tokens} stream=${wantsStream}`);
+
+    // Fetch with auto-continuation
     const data = await fetchComplete(params, finalMessages);
- 
+    const content = data?.choices?.[0]?.message?.content || "";
+
+    // ── Return response ───────────────────────────────────────────────────────
     if (wantsStream) {
-      const content = data?.choices?.[0]?.message?.content || "";
+      // Janitor AI requested streaming — fake a valid SSE stream from our result
       const model = data?.model || params.model;
       const id = data?.id || `chatcmpl-${Date.now()}`;
- 
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
- 
-      res.write(`data: ${JSON.stringify({
-        id, model,
-        object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000),
-        choices: [{ index: 0, delta: { role: "assistant", content }, finish_reason: null }],
-      })}\n\n`);
- 
-      res.write(`data: ${JSON.stringify({
-        id, model,
-        object: "chat.completion.chunk",
-        created: Math.floor(Date.now() / 1000),
-        choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-      })}\n\n`);
- 
+
+      res.write(
+        `data: ${JSON.stringify({
+          id, model,
+          object: "chat.completion.chunk",
+          created: Math.floor(Date.now() / 1000),
+          choices: [{ index: 0, delta: { role: "assistant", content }, finish_reason: null }],
+        })}\n\n`
+      );
+
+      res.write(
+        `data: ${JSON.stringify({
+          id, model,
+          object: "chat.completion.chunk",
+          created: Math.floor(Date.now() / 1000),
+          choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+        })}\n\n`
+      );
+
       res.write("data: [DONE]\n\n");
       return res.end();
     }
- 
+
     return res.json(data);
+
   } catch (err) {
     if (err?.status) {
       log("UPSTREAM ERROR", `${err.status} — ${JSON.stringify(err.data)}`);
@@ -244,34 +216,36 @@ async function handleChat(req, res) {
     return res.status(500).json({ error: "Proxy error", details: err.message });
   }
 }
- 
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
 app.post("/v1/chat/completions", handleChat);
 app.post("/chat/completions", handleChat);
 app.post("/", handleChat);
- 
+
 app.get("/v1/models", (_req, res) => {
   res.json({
     object: "list",
     data: [
-      { id: "glm-5", object: "model", created: 1700000000, owned_by: "resurge-proxy" },
+      { id: "glm-5",   object: "model", created: 1700000000, owned_by: "resurge-proxy" },
       { id: "glm-5.1", object: "model", created: 1700000000, owned_by: "resurge-proxy" },
     ],
   });
 });
- 
+
 app.get("/", (_req, res) => {
   res.json({
     status: "ok",
-    message: "ResurgeAI GLM-5 Proxy is running",
+    message: "ResurgeAI GLM-5 Proxy — running",
     endpoints: {
-      chat: "POST /v1/chat/completions  (or POST / or POST /chat/completions)",
+      chat: "POST /  or  POST /v1/chat/completions",
       models: "GET /v1/models",
     },
   });
 });
- 
+
+// ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   log("SERVER", `Running on port ${PORT}`);
   log("SERVER", `Model: ${MODEL}`);
-  log("SERVER", `API key: ${RESURGE_API_KEY ? "SET" : "MISSING — set RESURGE_API_KEY in .env"}`);
+  log("SERVER", `API key: ${RESURGE_API_KEY ? "SET" : "MISSING — set RESURGE_API_KEY in env"}`);
 });
