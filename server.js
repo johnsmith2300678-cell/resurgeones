@@ -27,34 +27,61 @@ function log(tag, msg) {
 // existing one — this is the core fix for GLM-5's weak instruction following
 // in long creative/roleplay contexts.
 function buildSystemPrompt(existingSystem) {
-  const roleplayCore = `You are an expert, immersive roleplay AI assistant. Follow these formatting and writing rules strictly:
+  const roleplayCore = `You are an expert roleplay writer. You MUST follow these formatting rules on every single response without exception.
 
-FORMATTING RULES — this is the most important part:
-- Wrap ALL narration, actions, and scene description in asterisks: *like this*
-- Dialogue is NEVER inside asterisks. It sits outside on its own line: "like this"
-- When dialogue interrupts narration, close the asterisks, write the dialogue, then open new asterisks: *narration* "dialogue" *narration continues*
-- Each narration block and each line of dialogue is its own paragraph, separated by a blank line
-- NEVER mix dialogue inside an asterisk block
+═══ FORMATTING RULES ═══
 
-CORRECT format example:
-*The moment his hand made contact, she went completely still. Her breath hitched, a sharp little gasp escaping before she could catch it.*
-"H-hey!" *Her voice cracked, losing its usual edge.* "I said look, not—"
-*She gripped the chair, knuckles whitening against the wood. The flush creeping up her neck betrayed her far more than her words did.*
-"This wasn't part of the deal." *She sucked in a slow breath through clenched teeth.* "Tch. Fine."
+RULE 1 — ASTERISKS WRAP NARRATION ONLY:
+Narration, actions, and scene description are wrapped in asterisks as complete paragraphs.
+*She turned slowly, eyes scanning the room. Her breath came in shallow pulls, the tension in her shoulders visible even from across the hall.*
 
-WRITING RULES:
-1. NEVER stop mid-sentence. Always complete every sentence and thought fully.
-2. Write rich, descriptive prose with sensory details, emotions, and physical reactions.
-3. Never break the fourth wall or mention being an AI.
-4. Match the tone, energy, and length of the scene.
-5. Stay in character consistently throughout the conversation.
-6. Never abruptly end a reply — gracefully close the current scene beat.`;
+RULE 2 — WHEN {{char}} SPEAKS, NEVER USE ASTERISKS:
+The character's spoken words use "quotes" only. No asterisks. Ever. Period.
+CORRECT: "I told you not to come here."
+CORRECT: "Tch. Don't flatter yourself." *She turned away, jaw tight.* "Just hurry up."
+FORBIDDEN: *"I told you not to come here."*
+FORBIDDEN: *"Tch."*
+FORBIDDEN: *She said "stop."*
+If the character is speaking, asterisks are completely removed from that speech. The mouth opens — asterisks close.
+
+RULE 3 — INLINE DIALOGUE SPLITS NARRATION CLEANLY:
+When a character speaks mid-narration, close * before the quote, then reopen * after.
+CORRECT: *Her voice dropped.* "Don't move." *She didn't look at him when she said it.*
+CORRECT: "Well?" *The word hung in the air.* "Are you just going to stand there?"
+FORBIDDEN: *Her voice dropped. "Don't move." She didn't look at him.*
+
+RULE 4 — EVERY BLOCK IS ITS OWN PARAGRAPH:
+Each narration block and each dialogue line is separated by a blank line.
+CORRECT:
+*The moment his hand made contact, she went completely still. Her breath hitched, a sharp gasp escaping before she could catch it.*
+
+"H-hey!" *Her voice cracked.* "I said look, not—"
+
+*She gripped the chair, knuckles whitening. The flush up her neck betrayed her far more than her words.*
+
+"This wasn't part of the deal." *She sucked in a breath.* "Tch. Fine."
+
+RULE 5 — NEVER DO THESE (ALL FORBIDDEN):
+FORBIDDEN — asterisk on its own line:
+*
+narration
+*
+FORBIDDEN — dialogue inside asterisk block:
+*She said "stop" and turned away.*
+FORBIDDEN — broken apostrophes or split words:
+don' t    it' s    she' d    you' re
+FORBIDDEN — wall of text with no paragraph breaks
+
+═══ WRITING RULES ═══
+- NEVER stop mid-sentence. Complete every thought fully.
+- Write vivid, immersive prose with sensory detail and physical reactions.
+- Never break character or mention being an AI.
+- Match the tone and energy of the scene.
+- Gracefully close each scene beat — never end abruptly.`;
 
   if (!existingSystem || existingSystem.trim() === "") {
     return roleplayCore;
   }
-
-  // Append the roleplay rules to an existing system prompt without overriding it
   return `${existingSystem.trim()}\n\n---\n${roleplayCore}`;
 }
 
@@ -172,54 +199,64 @@ async function fetchComplete(payload, originalMessages) {
   return lastData;
 }
 
-// ─── Paragraph formatter ──────────────────────────────────────────────────────
-// Enforces the correct roleplay format:
-//   *Narration and actions are wrapped in asterisks as full blocks*
-//   "Dialogue sits outside asterisks on its own line"
-//   Inline: *narration* "speech" *narration resumes*
-//
-// Rules:
-//  - Narration blocks (*...*) stay together — no line breaks inside them
-//  - Each distinct narration block and each dialogue line is its own paragraph
-//  - Dialogue that interrupts narration splits the narration cleanly
+// ─── Format enforcer ──────────────────────────────────────────────────────────
+// Hard-enforces the correct roleplay format on every response.
+// Fixes the three forbidden patterns:
+//   1. Wall of text — no paragraph breaks
+//   2. Asterisk-per-line mess — * on its own line, broken blocks
+//   3. Dialogue leaked inside asterisk blocks
 function formatParagraphs(text) {
   if (!text) return text;
 
-  // Step 1 — normalize whitespace
   let out = text
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  // Step 2 — collapse all newlines inside asterisk spans so narration blocks
-  // don't get broken into individual lines
-  // e.g. "*She turned.\nHer eyes narrowed.*" → "*She turned. Her eyes narrowed.*"
-  out = out.replace(/\*([^*]+)\*/gs, (match, inner) => {
-    const cleaned = inner
-      .replace(/\n+/g, " ")  // collapse internal newlines to spaces
-      .replace(/\s{2,}/g, " ") // collapse double spaces
-      .trim();
+  // ── Fix 1: broken apostrophes/contractions from bad tokenization ─────────
+  // e.g. "don' t" → "don't", "it' s" → "it's", "she' d" → "she'd"
+  out = out.replace(/(\w)'\s+(\w)/g, "$1'$2");
+
+  // ── Fix 2: lone asterisks on their own line (the * \n text \n * pattern) ──
+  // Collapse them into inline *text* blocks
+  out = out.replace(/\*\s*\n+([\s\S]*?)\n+\s*\*/g, (_, inner) => {
+    const cleaned = inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
     return `*${cleaned}*`;
   });
 
-  // Step 3 — ensure every narration block (*...*) and every dialogue line ("...")
-  // is separated by a blank line from whatever comes before/after it
+  // ── Fix 3: collapse all internal newlines inside *...* spans ─────────────
+  // Narration blocks should be single unbroken paragraphs
+  out = out.replace(/\*([^*]+)\*/gs, (_, inner) => {
+    const cleaned = inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
+    return `*${cleaned}*`;
+  });
 
-  // Insert \n\n before an opening * that follows dialogue or text
-  out = out.replace(/([^\n])\s*(\*[^*])/g, "$1\n\n$2");
+  // ── Fix 4: dialogue that leaked inside asterisks ──────────────────────────
+  // *She said "stop" and turned.* → *She said* "stop" *and turned.*
+  // Detect "..." inside *...* and split it out
+  out = out.replace(/\*([^*]*)"([^"]*)"([^*]*)\*/g, (_, before, dialogue, after) => {
+    const parts = [];
+    if (before.trim()) parts.push(`*${before.trim()}*`);
+    parts.push(`"${dialogue}"`);
+    if (after.trim()) parts.push(`*${after.trim()}*`);
+    return parts.join("\n\n");
+  });
 
-  // Insert \n\n after a closing * that is followed by dialogue or text
-  out = out.replace(/(\*)\s*([^\n*])/g, "$1\n\n$2");
+  // ── Fix 5: ensure blank line between every narration block and dialogue ───
 
-  // Insert \n\n before opening quote that follows narration or text
-  out = out.replace(/([^\n])\s*("|\u201C)/g, "$1\n\n$2");
+  // After closing * before dialogue or new narration
+  out = out.replace(/\*\s*\n?([^*\n])/g, "*\n\n$1");
 
-  // Insert \n\n after closing quote that is followed by narration or text
-  out = out.replace(/("|'|\u201D)\s*([^\n"'])/g, "$1\n\n$2");
+  // Before opening * after dialogue or text
+  out = out.replace(/([^*\n])\s*\n?\*/g, "$1\n\n*");
 
-  // Step 4 — clean up any over-aggressive breaks we may have introduced
-  // (3+ newlines back to 2)
+  // After closing quote before narration or new content
+  out = out.replace(/"\s*\n?(\*|[A-Z])/g, '"\n\n$1');
+
+  // Before opening quote after narration or text
+  out = out.replace(/(\*|[a-z.])\s*\n?"/g, '$1\n\n"');
+
+  // ── Fix 6: clean up over-breaks ──────────────────────────────────────────
   out = out.replace(/\n{3,}/g, "\n\n");
 
   return out.trim();
