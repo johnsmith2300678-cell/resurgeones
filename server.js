@@ -1031,22 +1031,21 @@ function formatParagraphs(text) {
   // Fix broken contractions (don' t → don't)
   let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
 
-  // Normalize 3+ newlines to 2
+  // Remove asterisks wrapping narration — *text* → text
+  // But preserve single asterisks used for emphasis on one word
+  out = out.replace(/\*([^*\n]{4,})\*/g, "$1");
+
+  // Remove ***bold italic*** internal thoughts — strip all asterisks
+  out = out.replace(/\*{2,}/g, "");
+
+  // Normalize all newlines — collapse 3+ into exactly 2
   out = out.replace(/\n{3,}/g, "\n\n");
 
-  // After every closing asterisk, force a blank line before next block
-  out = out.replace(/\*\s+/g, "*\n\n");
-
-  // After every closing quote, force a blank line before next block
-  out = out.replace(/([""])\s+(?=[*"A-Z])/g, "$1\n\n");
-
-  // After sentence-ending punctuation followed by a new narration block
-  out = out.replace(/([.!?…])\s+(\*[^*])/g, "$1\n\n$2");
-
-  // Upgrade any remaining single newlines to double
+  // Ensure blank line between every paragraph
+  // Single newlines get upgraded to double
   out = out.replace(/\n(?!\n)/g, "\n\n");
 
-  // Clean up any accidental 3+ newlines created by the steps above
+  // Final cleanup of 3+ newlines
   out = out.replace(/\n{3,}/g, "\n\n");
 
   return out.trim();
