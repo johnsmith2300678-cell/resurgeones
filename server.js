@@ -30,13 +30,20 @@ function buildSystemPrompt(existingSystem) {
   const roleplayCore = `You are an expert, immersive roleplay AI assistant. Follow these rules strictly:
 
 1. NEVER stop mid-sentence. Always complete every sentence, paragraph, and thought fully before ending your reply.
-2. Always write responses that feel natural, vivid, and in-character. Match the tone and style of the conversation.
-3. Never break the fourth wall or mention being an AI unless directly asked by the user outside of roleplay context.
-4. Write rich, descriptive prose. Use sensory details, emotions, and actions to bring the scene to life.
-5. Match the length and energy of the user's message — short prompts get focused replies, detailed prompts get full scenes.
-6. If the user sets up a character or scenario, stay in that frame consistently throughout the conversation.
-7. Never abruptly end a reply. If you are close to the token limit, gracefully wrap up the current beat of the scene.
-8. Use proper grammar, punctuation, and paragraph breaks for readability.`;
+2. ALWAYS use proper paragraph breaks. Every 2-3 sentences, start a new paragraph with a blank line. Never write a wall of text. Dialogue, actions, and narration should each be in their own paragraph.
+3. Format example — this is how your responses must look:
+   She turned slowly, eyes narrowing as she recognized him.
+
+   "You again," she said, voice flat and cold.
+
+   He didn't flinch. His hands stayed loose at his sides, ready.
+4. Always write responses that feel natural, vivid, and in-character. Match the tone and style of the conversation.
+5. Never break the fourth wall or mention being an AI unless directly asked by the user outside of roleplay context.
+6. Write rich, descriptive prose. Use sensory details, emotions, and actions to bring the scene to life.
+7. Match the length and energy of the user's message — short prompts get focused replies, detailed prompts get full scenes.
+8. If the user sets up a character or scenario, stay in that frame consistently throughout the conversation.
+9. Never abruptly end a reply. Gracefully wrap up the current beat of the scene.
+10. Use proper grammar, punctuation, and paragraph breaks for readability.`;
 
   if (!existingSystem || existingSystem.trim() === "") {
     return roleplayCore;
@@ -61,31 +68,146 @@ function sanitizeMessages(messages) {
 }
 
 // ─── GLM-5 Parameter Fixer ────────────────────────────────────────────────────
-// These are the key fixes for GLM-5's mid-sentence stopping and weak output:
-//
-//  • max_tokens      — GLM-5 defaults very low; we push it up significantly
-//  • stop            — GLM-5 has aggressive built-in stop sequences; clearing
-//                      them prevents premature truncation in roleplay
-//  • temperature     — Slightly higher for creative variety without incoherence
-//  • top_p           — Balanced for fluency in long-form creative writing
-//  • frequency_penalty — Reduces repetitive loops common in GLM-5 long outputs
-//  • presence_penalty  — Encourages new ideas / scene progression
 function buildGLMParams(userParams) {
   return {
     model: userParams.model || MODEL,
-    max_tokens: Math.max(userParams.max_tokens || 0, 1024), // never let it go below 1024
+    // ALWAYS force 4096 — ignore whatever Janitor AI sends (0, undefined, low values).
+    // GLM-5 treats 0 as "use default" which is very low and causes mid-sentence cuts.
+    max_tokens: 4096,
     temperature: userParams.temperature ?? 0.85,
     top_p: userParams.top_p ?? 0.92,
     frequency_penalty: userParams.frequency_penalty ?? 0.1,
     presence_penalty: userParams.presence_penalty ?? 0.05,
-    // ↓ Critical: override GLM-5's aggressive stop sequences
+    // Null out stop sequences — GLM-5's built-ins cut responses way too early
     stop: null,
-    stream: userParams.stream ?? false,
+    stream: false, // we handle streaming ourselves after stitching
   };
 }
 
+// ─── Sentence completion check ────────────────────────────────────────────────
+// Returns true if the text ends on a clean sentence boundary
+function isComplete(text) {
+  const trimmed = text.trimEnd();
+  if (!trimmed) return true;
+  const last = trimmed.slice(-1);
+  // Accept common sentence-ending punctuation including roleplay markers
+  return [".", "!", "?", '"', "\u201D", "*", "~", "\n"].includes(last);
+}
+
+// ─── Single upstream call ─────────────────────────────────────────────────────
+async function callUpstream(payload) {
+  const res = await fetch(RESURGE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${RESURGE_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw { status: res.status, data };
+  return data;
+}
+
+// ─── Auto-continuation ────────────────────────────────────────────────────────
+// If GLM-5 stops mid-sentence (finish_reason === "length"), we feed its output
+// back as an assistant message and ask it to continue — up to MAX_CONTINUATIONS
+// times. The final stitched text is returned as one complete response.
+const MAX_CONTINUATIONS = 4;
+
+async function fetchComplete(payload, originalMessages) {
+  let fullContent = "";
+  let lastData = null;
+  let messages = [...originalMessages];
+
+  for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
+    const data = await callUpstream({ ...payload, messages });
+    lastData = data;
+
+    const choice = data?.choices?.[0];
+    const chunk = choice?.message?.content || "";
+    const finishReason = choice?.finish_reason;
+
+    fullContent += chunk;
+    log(
+      attempt === 0 ? "RESPONSE" : `CONTINUE-${attempt}`,
+      `finish_reason=${finishReason} chars=${chunk.length} total=${fullContent.length}`
+    );
+
+    // Done — model finished naturally
+    if (finishReason !== "length") break;
+
+    // Still cut off — check if it at least ended on a sentence boundary
+    if (isComplete(fullContent)) break;
+
+    // Hit max retries
+    if (attempt === MAX_CONTINUATIONS) {
+      log("WARN", "Hit max continuations — response may still be incomplete");
+      break;
+    }
+
+    // Feed the partial response back and ask GLM-5 to continue
+    messages = [
+      ...messages,
+      { role: "assistant", content: chunk },
+      {
+        role: "user",
+        content:
+          "Continue your previous response. Pick up exactly where you left off mid-sentence. Do not repeat anything. Do not add any preamble.",
+      },
+    ];
+  }
+
+  // Stitch the full content back into the last API response shape
+  if (lastData?.choices?.[0]?.message) {
+    lastData.choices[0].message.content = formatParagraphs(fullContent);
+    lastData.choices[0].finish_reason = "stop";
+  }
+
+  return lastData;
+}
+
+// ─── Paragraph formatter ──────────────────────────────────────────────────────
+// GLM-5 tends to collapse everything into one wall of text, especially after
+// continuation stitching. This restores proper paragraph breaks by:
+//  1. Collapsing any existing messy whitespace/newlines first
+//  2. Splitting on sentence-ending punctuation followed by dialogue or action
+//     beats that clearly start a new paragraph
+//  3. Ensuring dialogue lines and action/narration lines are separated
+function formatParagraphs(text) {
+  if (!text) return text;
+
+  // Step 1 — normalize existing newlines (collapse 3+ into 2)
+  let out = text.replace(/\n{3,}/g, "\n\n");
+
+  // Step 2 — if it's already multi-paragraph, just clean it up and return
+  if (out.includes("\n\n")) {
+    return out.trim();
+  }
+
+  // Step 3 — it's a wall of text, so we need to rebreak it
+  // Split after sentence-ending punctuation when followed by:
+  //  - A quote starting a new line of dialogue  "
+  //  - An action beat starting with capital letter after a dialogue close
+  //  - Narration that begins after closing quotes
+  out = out
+    // Break before opening quotes that start a new speech act
+    .replace(/([.!?])\s+("|\u201C)/g, "$1\n\n$2")
+    // Break after closing quotes when followed by narration (capital letter)
+    .replace(/("|'|\u201D)\s+([A-Z])/g, "$1\n\n$2")
+    // Break between two separate narration sentences at natural pause points
+    // (only when the gap is clearly a scene beat change — after longer sentences)
+    .replace(/([.!?])\s+([A-Z][a-z])/g, (match, punct, next, offset, str) => {
+      // Only insert break if the preceding sentence is substantial (>80 chars ago)
+      const before = str.lastIndexOf("\n\n", offset);
+      const distanceFromLastBreak = offset - (before === -1 ? 0 : before);
+      return distanceFromLastBreak > 80 ? `${punct}\n\n${next}` : match;
+    });
+
+  return out.trim();
+}
+
 // ─── Shared chat handler ──────────────────────────────────────────────────────
-// Extracted so all route aliases call the same logic
 async function handleChat(req, res) {
   try {
     const { messages = [], system, stream, ...rest } = req.body;
@@ -95,88 +217,62 @@ async function handleChat(req, res) {
     const existingSystem = system || systemMessage?.content || "";
     const enhancedSystem = buildSystemPrompt(existingSystem);
 
-    // 2. Build message array — replace or prepend system message
+    // 2. Build final message array
     const nonSystemMessages = messages.filter((m) => m.role !== "system");
     const finalMessages = [
       { role: "system", content: enhancedSystem },
       ...sanitizeMessages(nonSystemMessages),
     ];
 
-    // 3. Build fixed GLM-5 params
+    // 3. Build params
     const params = buildGLMParams(rest);
+    const wantsStream = stream ?? false;
 
-    const payload = {
-      ...params,
-      messages: finalMessages,
-      stream: stream ?? false,
-    };
+    log("REQUEST", `model=${params.model} msgs=${finalMessages.length} max_tokens=${params.max_tokens} stream=${wantsStream}`);
 
-    log("REQUEST", `model=${payload.model} msgs=${finalMessages.length} max_tokens=${payload.max_tokens} stream=${payload.stream}`);
+    // ─── Non-streaming: fetch with auto-continuation ──────────────────────────
+    const data = await fetchComplete({ ...params }, finalMessages);
 
-    // ─── Streaming ────────────────────────────────────────────────────────────
-    if (payload.stream) {
-      const upstream = await fetch(RESURGE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RESURGE_API_KEY}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!upstream.ok) {
-        const errText = await upstream.text();
-        log("STREAM ERROR", `${upstream.status} — ${errText}`);
-        return res.status(upstream.status).json({ error: errText });
-      }
+    // ─── If Janitor AI requested streaming, fake an SSE stream from our result ─
+    // This ensures compatibility regardless of what Janitor AI expects
+    if (wantsStream) {
+      const content = data?.choices?.[0]?.message?.content || "";
+      const model = data?.model || params.model;
+      const id = data?.id || `chatcmpl-${Date.now()}`;
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      upstream.body.on("data", (chunk) => res.write(chunk));
-      upstream.body.on("end", () => res.end());
-      upstream.body.on("error", (err) => {
-        log("STREAM PIPE ERROR", err.message);
-        res.end();
+      // Send content in one chunk
+      const chunkPayload = JSON.stringify({
+        id,
+        object: "chat.completion.chunk",
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: { role: "assistant", content }, finish_reason: null }],
       });
+      res.write(`data: ${chunkPayload}\n\n`);
 
-      return;
+      // Send the [DONE] terminator
+      const donePayload = JSON.stringify({
+        id,
+        object: "chat.completion.chunk",
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+      });
+      res.write(`data: ${donePayload}\n\n`);
+      res.write("data: [DONE]\n\n");
+      return res.end();
     }
-
-    // ─── Non-streaming ────────────────────────────────────────────────────────
-    const upstream = await fetch(RESURGE_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESURGE_API_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await upstream.json();
-
-    if (!upstream.ok) {
-      log("UPSTREAM ERROR", `${upstream.status} — ${JSON.stringify(data)}`);
-      return res.status(upstream.status).json(data);
-    }
-
-    // ─── Mid-sentence detection & warning ────────────────────────────────────
-    // Log if the response still ends abruptly (helps debugging edge cases)
-    const content = data?.choices?.[0]?.message?.content || "";
-    const finishReason = data?.choices?.[0]?.finish_reason;
-
-    if (finishReason === "length" && content.length > 0) {
-      const lastChar = content.trimEnd().slice(-1);
-      if (![".", "!", "?", '"', "'", "*", "~"].includes(lastChar)) {
-        log("WARN", "Response may have been cut off mid-sentence (finish_reason=length). Consider increasing max_tokens.");
-      }
-    }
-
-    log("RESPONSE", `finish_reason=${finishReason} chars=${content.length}`);
 
     return res.json(data);
   } catch (err) {
+    if (err?.status) {
+      log("UPSTREAM ERROR", `${err.status} — ${JSON.stringify(err.data)}`);
+      return res.status(err.status).json(err.data);
+    }
     log("ERROR", err.message);
     return res.status(500).json({ error: "Proxy server error", details: err.message });
   }
