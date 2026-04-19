@@ -84,11 +84,9 @@ function buildGLMParams(userParams) {
   };
 }
 
-// ─── POST /v1/chat/completions ────────────────────────────────────────────────
-// Drop-in OpenAI-compatible endpoint. Point Janitor AI's custom API to:
-//   https://your-render-url.onrender.com/v1/chat/completions
-// API Key: your RESURGE_API_KEY (or any string if you add auth below)
-app.post("/v1/chat/completions", async (req, res) => {
+// ─── Shared chat handler ──────────────────────────────────────────────────────
+// Extracted so all route aliases call the same logic
+async function handleChat(req, res) {
   try {
     const { messages = [], system, stream, ...rest } = req.body;
 
@@ -182,7 +180,14 @@ app.post("/v1/chat/completions", async (req, res) => {
     log("ERROR", err.message);
     return res.status(500).json({ error: "Proxy server error", details: err.message });
   }
-});
+}
+
+// ─── Route aliases ────────────────────────────────────────────────────────────
+// Janitor AI (and similar frontends) may POST to several different paths
+// depending on how the custom API URL is entered by the user. We handle all of them.
+app.post("/v1/chat/completions", handleChat); // standard OpenAI path
+app.post("/chat/completions", handleChat);    // without /v1 prefix
+app.post("/", handleChat);                    // bare root — the 404 you hit
 
 // ─── GET /v1/models ───────────────────────────────────────────────────────────
 // Some frontends (including Janitor AI) hit this endpoint to list models
@@ -213,12 +218,13 @@ app.get("/v1/models", (_req, res) => {
 });
 
 // ─── Health check ─────────────────────────────────────────────────────────────
+// Only fires on GET /, POST / is already handled above by handleChat
 app.get("/", (_req, res) => {
   res.json({
     status: "ok",
     message: "ResurgeAI GLM-5 Proxy is running",
     endpoints: {
-      chat: "POST /v1/chat/completions",
+      chat: "POST /v1/chat/completions  (or POST / or POST /chat/completions)",
       models: "GET /v1/models",
     },
   });
