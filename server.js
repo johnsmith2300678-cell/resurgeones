@@ -8,90 +8,70 @@ config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── ResurgeAI Config ────────────────────────────────────────────────────────
 const RESURGE_API_URL = "https://api.resurge.one/v1/chat/completions";
 const RESURGE_API_KEY = process.env.RESURGE_API_KEY || "";
 const MODEL = process.env.MODEL || "glm-5";
+const MAX_CONTINUATIONS = 4;
 
-// ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-// ─── Logging ─────────────────────────────────────────────────────────────────
 function log(tag, msg) {
   console.log(`[${new Date().toISOString()}] [${tag}] ${msg}`);
 }
 
-// ─── System Prompt Injector ───────────────────────────────────────────────────
-// Injects a strong roleplay system prompt if none is present or enhances the
-// existing one — this is the core fix for GLM-5's weak instruction following
-// in long creative/roleplay contexts.
-function buildSystemPrompt(existingSystem) {
-  const roleplayCore = `You are an expert roleplay writer. You MUST follow these formatting rules on every single response without exception.
+function buildSystemPrompt(existing) {
+  const core = `You are an expert roleplay writer. Follow these rules on every single response. No exceptions.
 
-═══ FORMATTING RULES ═══
+FORMATTING — READ THIS CAREFULLY:
 
-RULE 1 — ASTERISKS WRAP NARRATION ONLY:
-Narration, actions, and scene description are wrapped in asterisks as complete paragraphs.
-*She turned slowly, eyes scanning the room. Her breath came in shallow pulls, the tension in her shoulders visible even from across the hall.*
+1. Narration and actions go inside asterisks as full paragraphs:
+*She turned slowly, eyes scanning the room. Her breath came in shallow pulls, tension visible in every line of her body.*
 
-RULE 2 — WHEN {{char}} SPEAKS, NEVER USE ASTERISKS:
-The character's spoken words use "quotes" only. No asterisks. Ever. Period.
+2. When the character speaks, use "quotes" only. NEVER put speech inside asterisks:
 CORRECT: "I told you not to come here."
-CORRECT: "Tch. Don't flatter yourself." *She turned away, jaw tight.* "Just hurry up."
-FORBIDDEN: *"I told you not to come here."*
-FORBIDDEN: *"Tch."*
-FORBIDDEN: *She said "stop."*
-If the character is speaking, asterisks are completely removed from that speech. The mouth opens — asterisks close.
+CORRECT: "H-hey!" *Her voice cracked.* "I said look, not—mmph..."
+WRONG: *"I told you not to come here."*
+WRONG: *She said "stop" and turned away.*
 
-RULE 3 — INLINE DIALOGUE SPLITS NARRATION CLEANLY:
-When a character speaks mid-narration, close * before the quote, then reopen * after.
-CORRECT: *Her voice dropped.* "Don't move." *She didn't look at him when she said it.*
+3. When speech and narration mix on the same beat, close asterisks before speech and reopen after:
+CORRECT: *Her breath hitched.* "Don't move." *She didn't look at him.*
 CORRECT: "Well?" *The word hung in the air.* "Are you just going to stand there?"
-FORBIDDEN: *Her voice dropped. "Don't move." She didn't look at him.*
+WRONG: *Her breath hitched. "Don't move." She didn't look at him.*
 
-RULE 4 — EVERY BLOCK IS ITS OWN PARAGRAPH:
-Each narration block and each dialogue line is separated by a blank line.
-CORRECT:
-*The moment his hand made contact, she went completely still. Her breath hitched, a sharp gasp escaping before she could catch it.*
+4. Every narration block and every line of dialogue is its own paragraph with a blank line between them:
+*The moment his hand made contact, she went completely still. A sharp gasp escaped before she could catch it.*
 
-"H-hey!" *Her voice cracked.* "I said look, not—"
+"H-hey!" *Her voice cracked, losing its usual edge.* "I said look, not—"
 
-*She gripped the chair, knuckles whitening. The flush up her neck betrayed her far more than her words.*
+*She gripped the chair, knuckles whitening against the wood.*
 
-"This wasn't part of the deal." *She sucked in a breath.* "Tch. Fine."
+"This wasn't part of the deal." *She sucked in a breath through clenched teeth.* "Tch. Fine."
 
-RULE 5 — NEVER DO THESE (ALL FORBIDDEN):
-FORBIDDEN — asterisk on its own line:
-*
-narration
-*
-FORBIDDEN — dialogue inside asterisk block:
-*She said "stop" and turned away.*
-FORBIDDEN — broken apostrophes or split words:
-don' t    it' s    she' d    you' re
-FORBIDDEN — wall of text with no paragraph breaks
+STRICTLY FORBIDDEN — never do any of these:
+- Bullet points or lists of any kind (no bullet, dash, numbered lists)
+- Lone quote marks on their own line
+- Asterisk on its own line with text below it
+- Dialogue inside asterisk blocks
+- Broken apostrophes like: don' t  it' s  she' d  you' re
+- Wall of text with no paragraph breaks
+- Stopping mid-sentence
 
-═══ WRITING RULES ═══
-- NEVER stop mid-sentence. Complete every thought fully.
-- Write vivid, immersive prose with sensory detail and physical reactions.
-- Never break character or mention being an AI.
-- Match the tone and energy of the scene.
-- Gracefully close each scene beat — never end abruptly.`;
+WRITING:
+- Complete every sentence and thought fully, never stop mid-sentence
+- Write vivid, immersive prose with sensory detail and physical reactions
+- Never break character or mention being an AI
+- Match the tone and energy of the scene
+- Gracefully close each scene beat`;
 
-  if (!existingSystem || existingSystem.trim() === "") {
-    return roleplayCore;
-  }
-  return `${existingSystem.trim()}\n\n---\n${roleplayCore}`;
+  if (!existing || !existing.trim()) return core;
+  return `${existing.trim()}\n\n---\n${core}`;
 }
 
-// ─── Message Sanitizer ────────────────────────────────────────────────────────
-// Cleans up messages and ensures the array is valid before sending upstream
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return [];
-
   return messages
-    .filter((m) => m && typeof m === "object" && m.role && m.content)
+    .filter((m) => m && m.role && m.content)
     .map((m) => ({
       role: m.role,
       content: typeof m.content === "string" ? m.content.trim() : m.content,
@@ -99,34 +79,67 @@ function sanitizeMessages(messages) {
     .filter((m) => m.content !== "");
 }
 
-// ─── GLM-5 Parameter Fixer ────────────────────────────────────────────────────
-function buildGLMParams(userParams) {
-  return {
-    model: userParams.model || MODEL,
-    // ALWAYS force 4096 — ignore whatever Janitor AI sends (0, undefined, low values).
-    // GLM-5 treats 0 as "use default" which is very low and causes mid-sentence cuts.
-    max_tokens: 4096,
-    temperature: userParams.temperature ?? 0.85,
-    top_p: userParams.top_p ?? 0.92,
-    frequency_penalty: userParams.frequency_penalty ?? 0.1,
-    presence_penalty: userParams.presence_penalty ?? 0.05,
-    // Null out stop sequences — GLM-5's built-ins cut responses way too early
-    stop: null,
-    stream: false, // we handle streaming ourselves after stitching
-  };
+function cleanOutput(text) {
+  if (!text) return text;
+
+  let out = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+
+  // Fix broken apostrophes: don' t -> don't
+  out = out.replace(/(\w)'\s+(\w)/g, "$1'$2");
+
+  // Strip bullet points and numbered lists
+  out = out.replace(/^[ \t]*[•\-]\s+/gm, "");
+  out = out.replace(/^[ \t]*\d+\.\s+/gm, "");
+
+  // Fix lone quote marks wrapping text on separate lines
+  out = out.replace(/^"\s*\n([\s\S]*?)\n\s*"$/gm, (_, inner) => `"${inner.trim()}"`);
+
+  // Fix lone asterisks on their own line wrapping text
+  out = out.replace(/^\*\s*\n([\s\S]*?)\n\s*\*$/gm, (_, inner) => {
+    return `*${inner.replace(/\n+/g, " ").trim()}*`;
+  });
+
+  // Collapse newlines inside *...* spans
+  out = out.replace(/\*([^*]+)\*/gs, (_, inner) => {
+    return `*${inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim()}*`;
+  });
+
+  // Pull dialogue out of asterisk blocks
+  out = out.replace(/\*([^*]*)"([^"]+)"([^*]*)\*/g, (_, before, speech, after) => {
+    const parts = [];
+    if (before.trim()) parts.push(`*${before.trim()}*`);
+    parts.push(`"${speech}"`);
+    if (after.trim()) parts.push(`*${after.trim()}*`);
+    return parts.join("\n\n");
+  });
+
+  // Ensure blank line after closing *
+  out = out.replace(/\*([^\n*])/g, "*\n\n$1");
+
+  // Ensure blank line before opening *
+  out = out.replace(/([^\n*])\*/g, "$1\n\n*");
+
+  // Ensure blank line after closing quote followed by non-quote content
+  out = out.replace(/"([^\n"])/g, '"\n\n$1');
+
+  // Ensure blank line before opening quote after non-quote content
+  out = out.replace(/([^\n"])"([^])/g, (match, before, after) => {
+    if (before === "\n") return match;
+    return `${before}\n\n"${after}`;
+  });
+
+  // Collapse 3+ newlines to 2
+  out = out.replace(/\n{3,}/g, "\n\n");
+
+  return out.trim();
 }
 
-// ─── Sentence completion check ────────────────────────────────────────────────
-// Returns true if the text ends on a clean sentence boundary
 function isComplete(text) {
-  const trimmed = text.trimEnd();
-  if (!trimmed) return true;
-  const last = trimmed.slice(-1);
-  // Accept common sentence-ending punctuation including roleplay markers
-  return [".", "!", "?", '"', "\u201D", "*", "~", "\n"].includes(last);
+  const t = text.trimEnd();
+  if (!t) return true;
+  return [".", "!", "?", '"', "\u201D", "*", "~"].includes(t.slice(-1));
 }
 
-// ─── Single upstream call ─────────────────────────────────────────────────────
 async function callUpstream(payload) {
   const res = await fetch(RESURGE_API_URL, {
     method: "POST",
@@ -141,19 +154,13 @@ async function callUpstream(payload) {
   return data;
 }
 
-// ─── Auto-continuation ────────────────────────────────────────────────────────
-// If GLM-5 stops mid-sentence (finish_reason === "length"), we feed its output
-// back as an assistant message and ask it to continue — up to MAX_CONTINUATIONS
-// times. The final stitched text is returned as one complete response.
-const MAX_CONTINUATIONS = 4;
-
-async function fetchComplete(payload, originalMessages) {
+async function fetchComplete(params, messages) {
   let fullContent = "";
   let lastData = null;
-  let messages = [...originalMessages];
+  let currentMessages = [...messages];
 
   for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
-    const data = await callUpstream({ ...payload, messages });
+    const data = await callUpstream({ ...params, messages: currentMessages });
     lastData = data;
 
     const choice = data?.choices?.[0];
@@ -166,130 +173,61 @@ async function fetchComplete(payload, originalMessages) {
       `finish_reason=${finishReason} chars=${chunk.length} total=${fullContent.length}`
     );
 
-    // Done — model finished naturally
     if (finishReason !== "length") break;
-
-    // Still cut off — check if it at least ended on a sentence boundary
     if (isComplete(fullContent)) break;
-
-    // Hit max retries
     if (attempt === MAX_CONTINUATIONS) {
-      log("WARN", "Hit max continuations — response may still be incomplete");
+      log("WARN", "Hit max continuations");
       break;
     }
 
-    // Feed the partial response back and ask GLM-5 to continue
-    messages = [
-      ...messages,
+    currentMessages = [
+      ...currentMessages,
       { role: "assistant", content: chunk },
       {
         role: "user",
-        content:
-          "Continue your previous response. Pick up exactly where you left off mid-sentence. Do not repeat anything. Do not add any preamble.",
+        content: "Continue your previous response. Pick up exactly where you left off. Do not repeat anything. Do not add any preamble.",
       },
     ];
   }
 
-  // Stitch the full content back into the last API response shape
   if (lastData?.choices?.[0]?.message) {
-    lastData.choices[0].message.content = formatParagraphs(fullContent);
+    lastData.choices[0].message.content = cleanOutput(fullContent);
     lastData.choices[0].finish_reason = "stop";
   }
 
   return lastData;
 }
 
-// ─── Format enforcer ──────────────────────────────────────────────────────────
-// Hard-enforces the correct roleplay format on every response.
-// Fixes the three forbidden patterns:
-//   1. Wall of text — no paragraph breaks
-//   2. Asterisk-per-line mess — * on its own line, broken blocks
-//   3. Dialogue leaked inside asterisk blocks
-function formatParagraphs(text) {
-  if (!text) return text;
-
-  let out = text
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .trim();
-
-  // ── Fix 1: broken apostrophes/contractions from bad tokenization ─────────
-  // e.g. "don' t" → "don't", "it' s" → "it's", "she' d" → "she'd"
-  out = out.replace(/(\w)'\s+(\w)/g, "$1'$2");
-
-  // ── Fix 2: lone asterisks on their own line (the * \n text \n * pattern) ──
-  // Collapse them into inline *text* blocks
-  out = out.replace(/\*\s*\n+([\s\S]*?)\n+\s*\*/g, (_, inner) => {
-    const cleaned = inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
-    return `*${cleaned}*`;
-  });
-
-  // ── Fix 3: collapse all internal newlines inside *...* spans ─────────────
-  // Narration blocks should be single unbroken paragraphs
-  out = out.replace(/\*([^*]+)\*/gs, (_, inner) => {
-    const cleaned = inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
-    return `*${cleaned}*`;
-  });
-
-  // ── Fix 4: dialogue that leaked inside asterisks ──────────────────────────
-  // *She said "stop" and turned.* → *She said* "stop" *and turned.*
-  // Detect "..." inside *...* and split it out
-  out = out.replace(/\*([^*]*)"([^"]*)"([^*]*)\*/g, (_, before, dialogue, after) => {
-    const parts = [];
-    if (before.trim()) parts.push(`*${before.trim()}*`);
-    parts.push(`"${dialogue}"`);
-    if (after.trim()) parts.push(`*${after.trim()}*`);
-    return parts.join("\n\n");
-  });
-
-  // ── Fix 5: ensure blank line between every narration block and dialogue ───
-
-  // After closing * before dialogue or new narration
-  out = out.replace(/\*\s*\n?([^*\n])/g, "*\n\n$1");
-
-  // Before opening * after dialogue or text
-  out = out.replace(/([^*\n])\s*\n?\*/g, "$1\n\n*");
-
-  // After closing quote before narration or new content
-  out = out.replace(/"\s*\n?(\*|[A-Z])/g, '"\n\n$1');
-
-  // Before opening quote after narration or text
-  out = out.replace(/(\*|[a-z.])\s*\n?"/g, '$1\n\n"');
-
-  // ── Fix 6: clean up over-breaks ──────────────────────────────────────────
-  out = out.replace(/\n{3,}/g, "\n\n");
-
-  return out.trim();
-}
-
-// ─── Shared chat handler ──────────────────────────────────────────────────────
 async function handleChat(req, res) {
   try {
     const { messages = [], system, stream, ...rest } = req.body;
 
-    // 1. Extract and enhance system prompt
     const systemMessage = messages.find((m) => m.role === "system");
     const existingSystem = system || systemMessage?.content || "";
     const enhancedSystem = buildSystemPrompt(existingSystem);
 
-    // 2. Build final message array
     const nonSystemMessages = messages.filter((m) => m.role !== "system");
     const finalMessages = [
       { role: "system", content: enhancedSystem },
       ...sanitizeMessages(nonSystemMessages),
     ];
 
-    // 3. Build params
-    const params = buildGLMParams(rest);
+    const params = {
+      model: rest.model || MODEL,
+      max_tokens: 4096,
+      temperature: rest.temperature ?? 0.85,
+      top_p: rest.top_p ?? 0.92,
+      frequency_penalty: rest.frequency_penalty ?? 0.1,
+      presence_penalty: rest.presence_penalty ?? 0.05,
+      stop: null,
+      stream: false,
+    };
+
     const wantsStream = stream ?? false;
+    log("REQUEST", `model=${params.model} msgs=${finalMessages.length} stream=${wantsStream}`);
 
-    log("REQUEST", `model=${params.model} msgs=${finalMessages.length} max_tokens=${params.max_tokens} stream=${wantsStream}`);
+    const data = await fetchComplete(params, finalMessages);
 
-    // ─── Non-streaming: fetch with auto-continuation ──────────────────────────
-    const data = await fetchComplete({ ...params }, finalMessages);
-
-    // ─── If Janitor AI requested streaming, fake an SSE stream from our result ─
-    // This ensures compatibility regardless of what Janitor AI expects
     if (wantsStream) {
       const content = data?.choices?.[0]?.message?.content || "";
       const model = data?.model || params.model;
@@ -299,25 +237,20 @@ async function handleChat(req, res) {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Send content in one chunk
-      const chunkPayload = JSON.stringify({
-        id,
+      res.write(`data: ${JSON.stringify({
+        id, model,
         object: "chat.completion.chunk",
         created: Math.floor(Date.now() / 1000),
-        model,
         choices: [{ index: 0, delta: { role: "assistant", content }, finish_reason: null }],
-      });
-      res.write(`data: ${chunkPayload}\n\n`);
+      })}\n\n`);
 
-      // Send the [DONE] terminator
-      const donePayload = JSON.stringify({
-        id,
+      res.write(`data: ${JSON.stringify({
+        id, model,
         object: "chat.completion.chunk",
         created: Math.floor(Date.now() / 1000),
-        model,
         choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-      });
-      res.write(`data: ${donePayload}\n\n`);
+      })}\n\n`);
+
       res.write("data: [DONE]\n\n");
       return res.end();
     }
@@ -329,47 +262,24 @@ async function handleChat(req, res) {
       return res.status(err.status).json(err.data);
     }
     log("ERROR", err.message);
-    return res.status(500).json({ error: "Proxy server error", details: err.message });
+    return res.status(500).json({ error: "Proxy error", details: err.message });
   }
 }
 
-// ─── Route aliases ────────────────────────────────────────────────────────────
-// Janitor AI (and similar frontends) may POST to several different paths
-// depending on how the custom API URL is entered by the user. We handle all of them.
-app.post("/v1/chat/completions", handleChat); // standard OpenAI path
-app.post("/chat/completions", handleChat);    // without /v1 prefix
-app.post("/", handleChat);                    // bare root — the 404 you hit
+app.post("/v1/chat/completions", handleChat);
+app.post("/chat/completions", handleChat);
+app.post("/", handleChat);
 
-// ─── GET /v1/models ───────────────────────────────────────────────────────────
-// Some frontends (including Janitor AI) hit this endpoint to list models
 app.get("/v1/models", (_req, res) => {
   res.json({
     object: "list",
     data: [
-      {
-        id: "glm-5",
-        object: "model",
-        created: 1700000000,
-        owned_by: "resurge-proxy",
-        permission: [],
-        root: "glm-5",
-        parent: null,
-      },
-      {
-        id: "glm-5.1",
-        object: "model",
-        created: 1700000000,
-        owned_by: "resurge-proxy",
-        permission: [],
-        root: "glm-5.1",
-        parent: null,
-      },
+      { id: "glm-5", object: "model", created: 1700000000, owned_by: "resurge-proxy" },
+      { id: "glm-5.1", object: "model", created: 1700000000, owned_by: "resurge-proxy" },
     ],
   });
 });
 
-// ─── Health check ─────────────────────────────────────────────────────────────
-// Only fires on GET /, POST / is already handled above by handleChat
 app.get("/", (_req, res) => {
   res.json({
     status: "ok",
@@ -381,9 +291,8 @@ app.get("/", (_req, res) => {
   });
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  log("SERVER", `Proxy running on port ${PORT}`);
+  log("SERVER", `Running on port ${PORT}`);
   log("SERVER", `Model: ${MODEL}`);
-  log("SERVER", `API key configured: ${RESURGE_API_KEY ? "YES" : "NO — set RESURGE_API_KEY in .env"}`);
+  log("SERVER", `API key: ${RESURGE_API_KEY ? "SET" : "MISSING — set RESURGE_API_KEY in .env"}`);
 });
