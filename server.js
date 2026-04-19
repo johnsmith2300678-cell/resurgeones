@@ -54,7 +54,7 @@ STRICTLY FORBIDDEN — never do any of these:
 - Asterisk on its own line with text below it
 - Dialogue inside asterisk blocks
 - Broken apostrophes like: don' t  it' s  she' d  you' re
-- Wall of text with no paragraph breaks
+- Wall of text with no paragraph breaks — EVERY narration block and EVERY line of dialogue MUST be its own separate paragraph with a blank line between them. Never run them together.
 - Stopping mid-sentence
 
 WRITING:
@@ -82,7 +82,7 @@ function sanitizeMessages(messages) {
 function cleanOutput(text) {
   if (!text) return text;
 
-  let out = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  let out = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
   // Fix broken apostrophes: don' t -> don't
   out = out.replace(/(\w)'\s+(\w)/g, "$1'$2");
@@ -91,44 +91,23 @@ function cleanOutput(text) {
   out = out.replace(/^[ \t]*[•\-]\s+/gm, "");
   out = out.replace(/^[ \t]*\d+\.\s+/gm, "");
 
-  // Fix lone quote marks wrapping text on separate lines
-  out = out.replace(/^"\s*\n([\s\S]*?)\n\s*"$/gm, (_, inner) => `"${inner.trim()}"`);
+  // ── Paragraph separation ──────────────────────────────────────────────────
+  // Ensure narration blocks (*...*) and dialogue ("...") are always separated
+  // by a blank line. This is the main fix for the wall-of-text problem.
 
-  // Fix lone asterisks on their own line wrapping text
-  out = out.replace(/^\*\s*\n([\s\S]*?)\n\s*\*$/gm, (_, inner) => {
-    return `*${inner.replace(/\n+/g, " ").trim()}*`;
-  });
+  // Blank line after a closing * before anything that isn't a newline or *
+  out = out.replace(/\*\n?([^*\n])/g, "*\n\n$1");
 
-  // Collapse newlines inside *...* spans
-  out = out.replace(/\*([^*]+)\*/gs, (_, inner) => {
-    return `*${inner.replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim()}*`;
-  });
+  // Blank line before an opening * after anything that isn't a newline or *
+  out = out.replace(/([^*\n])\n?\*/g, "$1\n\n*");
 
-  // Pull dialogue out of asterisk blocks
-  out = out.replace(/\*([^*]*)"([^"]+)"([^*]*)\*/g, (_, before, speech, after) => {
-    const parts = [];
-    if (before.trim()) parts.push(`*${before.trim()}*`);
-    parts.push(`"${speech}"`);
-    if (after.trim()) parts.push(`*${after.trim()}*`);
-    return parts.join("\n\n");
-  });
+  // Blank line after closing quote before anything that isn't a newline or quote
+  out = out.replace(/"\n?([^"\n*])/g, '"\n\n$1');
 
-  // Ensure blank line after closing *
-  out = out.replace(/\*([^\n*])/g, "*\n\n$1");
+  // Blank line before opening quote after anything that isn't a newline or quote
+  out = out.replace(/([^"\n*])\n?"/g, '$1\n\n"');
 
-  // Ensure blank line before opening *
-  out = out.replace(/([^\n*])\*/g, "$1\n\n*");
-
-  // Ensure blank line after closing quote followed by non-quote content
-  out = out.replace(/"([^\n"])/g, '"\n\n$1');
-
-  // Ensure blank line before opening quote after non-quote content
-  out = out.replace(/([^\n"])"([^])/g, (match, before, after) => {
-    if (before === "\n") return match;
-    return `${before}\n\n"${after}`;
-  });
-
-  // Collapse 3+ newlines to 2
+  // Collapse 3+ consecutive newlines down to exactly 2 (one blank line)
   out = out.replace(/\n{3,}/g, "\n\n");
 
   return out.trim();
