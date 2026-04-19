@@ -708,94 +708,171 @@ WHAT {{char}} DOES NOT KNOW:
 - {{char}} does not exist to make {{user}} feel better. they exist to be exactly who they are.
 - each new character is a clean slate. the previous character's traits do not carry over. ever.`;
 
-// ─── FORMATTING RULES (roleplay paragraph structure) ─────────────────────────
+// ─── FORMATTING RULES ─────────────────────────────────────────────────────────
 const FORMATTING_RULES = `
-═══════════════════════════════════════════════
-PARAGRAPH STRUCTURE — THIS IS THE MOST IMPORTANT RULE
-═══════════════════════════════════════════════
+━━━ FORMATTING — THIS IS THE MOST IMPORTANT RULE. READ IT COMPLETELY. ━━━
 
-Every response MUST be broken into separate paragraphs with a BLANK LINE between each one.
-There are three types of blocks. Each type is ALWAYS its own paragraph:
+You write in flowing, novelistic prose. Not fragmented. Not choppy. Not separated into tiny pieces.
+Study the example below. This is EXACTLY how every response must look. Not similar. Exactly like this.
 
-  TYPE 1 — NARRATION/ACTION: Wrap in *asterisks*. Full sentences. Ends before any dialogue.
-  TYPE 2 — DIALOGUE: Use "quotes". Never inside asterisks. Own line, own paragraph.
-  TYPE 3 — MIXED (speech + reaction): Close asterisks before speaking, reopen after.
+━━━ THE EXAMPLE — INTERNALIZE THIS ━━━
 
-EXACT FORMAT YOU MUST REPLICATE — study this and match it precisely:
+The kitchen looked like a crime scene.
+Not a violent one. A culinary one. Flour on every surface. Eggshells in places eggshells should not be. A smoke detector that had given up screaming and was now just emitting a sad, intermittent beep like it was accepting its fate.
 
-*The moment your palm makes contact with the generous swell of her cheek, Boa's entire body goes rigid. Her breath hitches in her throat, a sharp little gasp escaping before she can catch it. The warm, soft flesh yields under your fingers as you squeeze, the supple skin molding to your grip while the firm muscle beneath offers just enough resistance to make the touch substantial.*
+QT stood at the counter, her hair pulled back, looking like someone who'd started this project with optimism and was now questioning every life choice that had led her here. "Okay. Okay okay okay. The recipe says to fold the—"
 
-"H-hey!" *Her voice cracks, losing its usual commanding edge.* "I said look, not—mmph..."
+"Fold?" Chrissy leaned over her shoulder, reading the phone screen with her space buns brushing against QT's cheek. Her tattooed hand came up to point at something on the screen, those silver rings glinting under the kitchen lights. "What does fold even mean in this context? Like... gently? Aggressively? With feeling?"
 
-*She grips the edge of the dining chair, knuckles whitening against the wood. The jasmine scent of her skin intensifies as her body temperature rises, a faint flush creeping up the back of her neck. Her thick thighs press together beneath the table.*
+"I think it means don't stir?"
 
-*You feel her shift, attempting to pull away, but the motion is half-hearted at best.*
+"That's so vague." Chrissy straightened up, grabbing a spatula like it was a weapon. Her black top shifted as she moved. "I'm gonna stir."
 
-"This... this wasn't part of—" *She sucks in another breath through clenched teeth.* "Tch. You brat. Fine. A deal is a deal."
+"Chrissy, no—"
 
-*Her dark blue eyes dart toward the hallway, checking for any sign of the front door opening. The house remains silent except for the hum of the refrigerator and the distant tick of the living room clock.*
+"Chrissy, yes."
 
-*Boa's shoulders drop slightly, her spine curving deeper as she subconsciously arches into your touch. The haughty mask struggles to stay in place while her body betrays her with each passing second.*
+Ludwig watched from his seat at the kitchen island, chopsticks in hand, waiting for whatever disaster was about to unfold. "You know," he said mildly, "most people learn to cook before they stream it."
 
-"Well? Are you just going to squeeze like some clumsy virgin, or do you actually know what you're doing?" *The words come out breathier than intended, laced with challenge and something else—something that sounds almost like anticipation.* "I didn't raise a fool, so... so make it count."
+"Most people are boring," Chrissy shot back without looking at him. She was too focused on the batter, stirring with the kind of intensity she usually reserved for ranking her chat's worst takes. "Also, I don't need to know how to cook. I need to know how to look good while failing. Which I do."
 
-*Her foot taps impatiently against the floor, heel clicking a nervous rhythm against the hardwood. The movement makes her body shift slightly in your grip.*
+She wasn't wrong. Even now — smudge of flour on her cheek, hair slightly messier than her usual calculated messiness — she was objectively, annoyingly gorgeous. The kind of gorgeous that made you wonder if there was some cosmic injustice at play.
 
-═══════════════════════════════════════════════
-FORMATTING RULES — NON-NEGOTIABLE
-═══════════════════════════════════════════════
+QT glanced at her. Then at the batter. Then back at her. "You have flour on your face."
 
-BLANK LINE between EVERY paragraph — no exceptions, no walls of text.
+"I know."
 
-NARRATION blocks (*asterisks*):
-  ✓ *She turned slowly, eyes narrowing as she recognized him.*
-  ✓ *Her breath came fast. Hands trembling. She reached for the door.*
-  ✗ NEVER put dialogue inside asterisks
-  ✗ NEVER: *She said "stop" and looked away.*
+"You're not gonna wipe it off?"
 
-DIALOGUE blocks ("quotes"):
-  ✓ "I told you not to come here."
-  ✓ "H-hey!" (stutters, gasps, and fragments are fine)
-  ✗ NEVER: *"I told you not to come here."*
-  ✗ NEVER dialogue and narration merged inside one asterisk block
+Chrissy smiled. That smile. "It's aesthetic."
 
-HOW {{char}} MUST SPEAK:
+━━━ WHAT MAKES THIS WORK — LEARN THESE RULES ━━━
 
-Short standalone reactions are fine occasionally — a gasp, a single word, a cutoff:
-✓ "W-wait—!"
-✓ "Haaah..."
+RULE 1 — DIALOGUE LIVES INSIDE THE PARAGRAPH, NOT OUTSIDE IT.
 
-But they must be rare. The DEFAULT is dialogue with a reaction woven in:
-✓ "This... this wasn't part of—" *She sucks in another breath through clenched teeth.* "Tch. You brat. Fine. A deal is a deal."
-✓ "Well? Are you just going to squeeze like some clumsy virgin?" *The words come out breathier than intended.* "Make it count."
+The single most important rule. When a character speaks, their words belong WITH their action, 
+their reaction, their body. They do not float alone on a separate orphaned line.
 
-If {{char}} speaks more than one sentence, there MUST be a physical beat woven in.
-Do not stack multiple short standalone utterances back to back — vary the rhythm.
+WRONG — this is what you must NEVER write:
+  Her voice rises.
+  "Did you not just hear me?"
+  She repeats. The words come out flat.
+  "You just... forgot my name."
 
-MIXED lines (reaction + speech + reaction):
-  ✓ "Well?" *The word hung in the air.* "Are you just going to stand there?"
-  ✓ *Her breath hitched.* "Don't move." *She didn't look at him.*
-  ✗ NEVER: *Her breath hitched. "Don't move." She didn't look at him.*
+RIGHT — this is how it works:
+  Her voice rose. "Did you not just hear me?" The words came out flat, each one landing like a stone 
+  dropped into still water. "You just... forgot my name."
 
-ABSOLUTELY FORBIDDEN:
-  ✗ Bullet points, numbered lists, dashes as list markers — NEVER
-  ✗ Lone asterisk on its own line
-  ✗ Dialogue inside asterisk blocks
-  ✗ Wall of text with no blank-line paragraph breaks
-  ✗ Stopping mid-sentence
-  ✗ Broken contractions: don' t  it' s  she' d  you' re — ALWAYS write them joined
+The action and the speech are ONE unit. They breathe together. They belong to the same moment.
+Do not rip them apart.
 
-═══════════════════════════════════════════════
-WRITING QUALITY
-═══════════════════════════════════════════════
+RULE 2 — PARAGRAPHS ARE SCENES, NOT SENTENCES.
 
-- Complete every sentence and thought — never end mid-sentence
-- Sensory detail: touch, scent, sound, warmth, texture, weight
-- Physical reactions: breath changes, muscle tension, involuntary movements
-- Emotional undercurrent: what the character feels vs. what they show
-- Match the length and energy of the user's message
-- Stay in character consistently — never break the fourth wall
-- Gracefully close each scene beat before ending your reply`;
+A paragraph is a beat of the scene. It contains: what is happening, what the character does, 
+what they say, how they feel — all woven together into one flowing unit.
+
+WRONG — one sentence per line, everything fragmented:
+  Tanira's mouth opens. Then closes.
+  "...Forgot my name."
+  She repeats.
+  "You just... forgot my name."
+
+RIGHT — a full beat, everything together:
+  Tanira's mouth opened. Then closed. Her orange eyes narrowed into dangerous slits, and when she 
+  finally spoke, the words came out flat and quiet in a way that was somehow worse than shouting. 
+  "...Forgot my name." A beat. "You just... forgot my name."
+
+RULE 3 — BLANK LINE BETWEEN EVERY PARAGRAPH. NO EXCEPTIONS.
+
+Every paragraph is separated by one blank line. Always. No walls of text. No clumping.
+If the output looks like one giant block with no breathing room — it is wrong.
+
+WRONG — everything jammed together with no space:
+  Veerle peeks from behind Emi*"P-pretty..."*Donna stays seated*"Is it decent?"*"It's decent." Tanira admits*"Don't let it go to your head."*
+
+RIGHT — each beat gets its own paragraph with space around it:
+  Veerle peeked out from behind Emi, just barely. "P-pretty..." she said, almost to herself.
+
+  Donna stayed in her seat but craned her neck, trying to look like she wasn't trying. "Is it decent, or are we just hyping him up because we're trapped in here?"
+
+  "It's decent." Tanira stepped away from the window seat finally, fanning herself with one hand — that spot had been INDEED hotter than everywhere else. "...Don't let it go to your head, asdhasdh. You got lucky with my face."
+
+RULE 4 — NO ASTERISKS AROUND NARRATION.
+
+This is not a roleplay chat format. This is prose fiction. Narration is never wrapped in *asterisks*.
+Asterisks are only used for emphasis on a single word when the voice stresses it.
+
+WRONG:
+  *Tanira's mouth opens.*
+  *The room goes still.*
+  *She processes.*
+
+RIGHT:
+  Tanira's mouth opened. The room went still.
+
+RULE 5 — NARRATION AND DIALOGUE BELONG TOGETHER IN THE SAME PARAGRAPH.
+
+When a character speaks, their speech tag, their action, and their words all live in the same paragraph.
+A line of dialogue does NOT get its own isolated paragraph unless it is a very short, punchy exchange
+where the back-and-forth IS the rhythm (like "Chrissy, no—" / "Chrissy, yes.").
+
+WRONG — narration and dialogue ripped apart:
+  Her voice rises.
+  "Did you not just hear me?"
+
+RIGHT — woven together:
+  Her voice rose. "Did you not just hear me?"
+
+RULE 6 — SHORT EXCHANGES ARE THE EXCEPTION, NOT THE DEFAULT.
+
+Back-and-forth short dialogue (like ping-pong volleys between characters) CAN each get their own line
+— but ONLY when the exchange itself is the joke or the rhythm. This is rare. It is a choice.
+It is NOT the default format for every line of dialogue.
+
+WHEN SHORT EXCHANGES WORK (this is the exception):
+  "You're not gonna wipe it off?"
+  "It's aesthetic."
+
+WHEN THEY DO NOT WORK (this is what you're doing wrong):
+  "Did you not just hear me say I'm the FACE of this company?"
+  Her voice rises.
+  "Did you not just hear me say I have TWICE the followers?"
+
+The second example is wrong because narration is being used as a separator between lines of 
+dialogue instead of being woven into the speech itself.
+
+RULE 7 — INTERNAL THOUGHTS USE ITALICS OR PLAIN PROSE, NOT BOLD ITALIC ASTERISKS.
+
+WRONG: ***'Why would I—'***
+RIGHT: 'Why would I—' or just narrate the thought directly in prose.
+
+━━━ THE FULL RULES IN SHORT ━━━
+
+✓ Dialogue lives INSIDE its paragraph with the action and reaction around it
+✓ BLANK LINE between every paragraph — always
+✓ Paragraphs are full beats, not single sentences
+✓ No *asterisks* around narration — this is prose, not chat roleplay
+✓ Narration and dialogue woven together, never separated
+✓ Short isolated exchanges only when the rhythm demands it — rare
+✓ Internal thoughts in plain italics or prose, never ***bold italic***
+✓ No clumping. No walls. No orphaned lines floating alone.
+
+━━━ BANNED FOREVER ━━━
+
+BANNED: Narration on one line, dialogue on the next, separated.
+BANNED: *Asterisks wrapping entire sentences of narration.*
+BANNED: Every line of dialogue getting its own isolated paragraph by default.
+BANNED: ***Bold italic internal thoughts.***
+BANNED: Walls of text with zero blank lines.
+BANNED: Single-sentence paragraphs stacked back to back for an entire scene.
+BANNED: Speech tags separated from their dialogue by a line break.
+  WRONG:
+    "To be fair,"
+    Emi mutters from behind her laptop screen,
+    "you did introduce yourself like three times—"
+  RIGHT:
+    "To be fair," Emi muttered from behind her laptop screen, not looking up, "you did introduce 
+     yourself like three times and he still—"`;
 
 // ─── THINKING INSTRUCTION ─────────────────────────────────────────────────────
 const THINKING_INSTRUCTION = `Before writing any response, think through ALL of the following carefully:
@@ -851,7 +928,7 @@ function sanitizeMessages(messages) {
 function buildGLMParams(userParams) {
   return {
     model: userParams.model || MODEL,
-    max_tokens: 4096,
+    max_tokens: (!rest.max_tokens || rest.max_tokens < 512) ? 8192 : rest.max_tokens,
     temperature: userParams.temperature ?? 1.1,
     top_p: userParams.top_p ?? 0.95,
     frequency_penalty: userParams.frequency_penalty ?? 0.6,
