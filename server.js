@@ -143,20 +143,35 @@ function isComplete(text) {
 }
 
 // ─── Single upstream call ─────────────────────────────────────────────────────
-async function callUpstream(payload) {
-  const res = await fetch(RESURGE_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${RESURGE_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw { status: res.status, data };
-  return data;
-}
+async function callUpstream(payload, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const res = await fetch(RESURGE_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESURGE_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
+    const contentType = res.headers.get("content-type") || "";
+
+    // Upstream returned HTML (502, cloudflare error page, etc.) — retry
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      log("UPSTREAM HTML ERROR", `attempt=${attempt}/${retries} status=${res.status} body=${text.slice(0, 200)}`);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 500 * attempt)); // wait 500ms, 1000ms, 1500ms
+        continue;
+      }
+      throw { status: 502, data: { error: "Upstream returned non-JSON after retries", details: text.slice(0, 200) } };
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw { status: res.status, data };
+    return data;
+  }
+}
 // ─── Auto-continuation ────────────────────────────────────────────────────────
 const MAX_CONTINUATIONS = 4;
 
