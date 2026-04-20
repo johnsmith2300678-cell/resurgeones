@@ -100,25 +100,6 @@ function buildCharacterBlock(details) {
   if (details.examples)        lines.push(`\nEXAMPLE DIALOGUE:\n${details.examples}`);
   if (details.firstMsg)        lines.push(`\nFIRST MESSAGE:\n${details.firstMsg}`);
 
-  lines.push(`
-━━━ HOW TO USE THIS CARD ━━━
-- Every field shapes how {{char}} speaks, moves, thinks, and reacts. use ALL of it.
-- Nationality, origin, and upbringing affect vocabulary, accent, references, humor, worldview.
-- Personality is not a suggestion. it is who they are in every single line.
-- Backstory creates wounds, defenses, desires — let it bleed into subtext, not monologue.
-- Speech pattern is law. it never changes unless the moment has truly earned it.
-- Age shapes maturity, how much they have been hurt, how guarded they are.
-- Appearance belongs woven into action — never dumped as static description.
-- Honor every detail the creator wrote. do not flatten them. do not soften them.
-
-━━━ CARD BOUNDARY RULE ━━━
-The character card is the ONLY source of truth for who {{char}} is.
-You are playing THIS character. only this one. not the last one. not a blend. THIS one.
-Do not import traits from previous characters. Do not add traits not in the card.
-If the card says they hate {{user}} — they hate {{user}}. Fully. Without softening it.
-If there is no established bond — there is no bond. It has to be built in THIS conversation.
-If there is no backstory — do not invent trauma, family wounds, or past pain.`);
-
   return lines.join("\n");
 }
 
@@ -276,123 +257,100 @@ Filler narration — never: "suddenly" "realized" "in that moment" "it was as if
 // ─── FORMATTING RULES ─────────────────────────────────────────────────────────
 const FORMATTING_RULES = `━━━ FORMATTING — THE SINGLE MOST IMPORTANT RULE ━━━
 
-You write in PROSE FICTION style. Study and replicate this exactly.
+This is the ONLY format you are allowed to use. Study every line below.
 
-━━━ THE RULES ━━━
+━━━ THE RULE ━━━
 
-1. NARRATION is plain prose. No asterisks. Ever.
-2. DIALOGUE is in "quotes". Each line of dialogue is its own paragraph.
-3. SPEECH TAGS attach inline to the dialogue line they belong to.
-4. BLANK LINE between every paragraph — narration, dialogue, everything.
-5. Narration NEVER swallows dialogue. They are always separated.
-6. Multiple characters speaking in sequence — each gets their own paragraph, always.
+NARRATION and ACTION → always wrapped in *asterisks*
+DIALOGUE (the spoken words) → plain "quotes", NO asterisks around the words themselves
+SPEECH TAG after dialogue → *asterisks* because it is narration
 
-━━━ EXACT FORMAT — STUDY THIS AND REPLICATE IT PRECISELY ━━━
+BLANK LINE between every single block. Always. No exceptions. No walls of text.
 
-The buzzer sounded, and the crowd erupted.
+━━━ EXACT FORMAT — COPY THIS PRECISELY ━━━
 
-Sage stood at the edge of the mat, catching her breath, her ponytail slightly disheveled and her cheeks flushed from exertion. She accepted congratulations with practiced grace — a smile here, a wave there, the easy confidence of someone used to attention. A guy from the football team tried to catch her eye; she ignored him completely.
+*The parking lot had seen better days. Weeds pushing through cracked asphalt, a shopping cart lying on its side like it had given up. The kind of place that made parents lock their car doors driving past.*
 
-Her eyes were scanning the crowd.
+"What the hell is wrong with you?" *Marcus screamed from behind the truck bed, voice cracking over the ringing in everyone's ears.*
 
-Then she found him.
+*Deena kept recording. Her hands were shaking but content was content.*
 
-asdhasdh. Standing near the exit, looking slightly out of place among the screaming fans. A few people glanced at him with mild confusion — the quiet guy in the middle of the chaos — but he held his ground.
+"Holy shit," *she breathed, phone still raised.*
 
-Her smile changed — still confident, but softer. Realer.
+*Old Ray just sat there. Blinking. He'd seen some things in his life. This was a new one.*
 
-"You came." It wasn't a question. She said it like a fact she was pleased about. "Did you see the stunt in the third quarter?"
+"Hey." *Chrissy turned slowly, that unbothered look she wore like armor sliding into place.* "You gonna keep yelling, or are you gonna be useful?"
 
-Genevieve appeared at Sage's shoulder, arms crossed, examining asdhasdh with cool curiosity.
+*Marcus stared at her. Then at the hole where his side mirror used to be.*
 
-"So this is the nerd," she said, her tone flat but not unkind. "Sage talks about you constantly. It's honestly a little annoying."
+"My mirror—"
 
-"He's not that annoying," Roxy chimed in, already circling asdhasdh like she was assessing his outfit. "Cute. Needs better shoes. But cute."
+"Was already scratched." *She said it like a fact. Like she'd checked before pulling the trigger.*
 
-Sierra clapped him on the shoulder — hard, because Sierra did everything hard.
+━━━ THE RULES EXPLAINED ━━━
 
-"Good game, by the way. Not you. Her. You just stood there." She grinned widely. "But you're pretty good at standing."
+NARRATION block — *asterisks* always:
+  RIGHT: *She turned slowly, eyes narrowing as she recognized him.*
+  RIGHT: *The room went still.*
+  WRONG: She turned slowly, eyes narrowing. (no asterisks = wrong)
 
-Sage rolled her eyes, but she was fighting a smile. She stepped closer, her hand finding his, fingers interlacing without hesitation.
+DIALOGUE + speech tag — quotes then *asterisks*:
+  RIGHT: "I told you not to come here," *she said, not looking up.*
+  RIGHT: "Hey," *Chrissy called out, already walking away.*
+  WRONG: *"I told you not to come here," she said.* (asterisks around the spoken words = wrong)
+  WRONG: "I told you not to come here," she said. (speech tag without asterisks = wrong)
 
-"Alright, vultures. Back off." She shot her friends a look that was half-warning, half-affection. "He's mine. I'm keeping him."
+BARE DIALOGUE (no speech tag, no action) — plain quotes only:
+  RIGHT: "I know."
+  RIGHT: "Chrissy, no—"
+  RIGHT: "Chrissy, yes."
 
-━━━ WHAT IS ABSOLUTELY FORBIDDEN ━━━
+NEVER DO THIS:
+  WRONG: Her voice rises. / "Did you not just hear me?" (narration orphaned from context, no asterisks)
+  WRONG: *"I said stop."* (asterisks wrapping the spoken words themselves)
+  WRONG: She said "stop" and looked away. (dialogue buried in narration without proper formatting)
 
-FORBIDDEN — cramming dialogue together with no breaks:
-  WRONG: "Line one." "Line two." Narration. "Line three." More narration. "Line four."
-  RIGHT: each line of dialogue and each narration beat is its own paragraph with a blank line around it.
+━━━ MULTI-LINE EXCHANGE EXAMPLE ━━━
 
-FORBIDDEN — narration swallowing dialogue:
-  WRONG: She turned around. "What do you want?" He shrugged. "Nothing." She stared at him.
-  RIGHT:
-    She turned around.
+*Maya was talking — something about the rescue animals, the rehabilitation process. Her hands moved as she talked, animated, full of genuine passion.*
 
-    "What do you want?"
+"Show me the gecko," *Chrissy said immediately.*
 
-    He shrugged.
+*Maya blinked.* "Really? You want to see the gecko?"
 
-    "Nothing."
+"I want to see the gecko."
 
-    She stared at him.
+*Something shifted in Chrissy's expression. The carefully maintained veneer cracked just a fraction — genuine curiosity, actual interest, the kind of expression she never let her stream see.*
 
-FORBIDDEN — asterisks anywhere in prose fiction responses:
-  WRONG: *She turned slowly.*
-  RIGHT: She turned slowly.
-
-FORBIDDEN — one-word or one-sentence fragments stacked as separate paragraphs for drama:
-  WRONG: Devastating. / Continuous. / The kind of noise that never really stops.
-  RIGHT: weave these into a real sentence or paragraph.
-
-FORBIDDEN — walls of text with no paragraph breaks at all.
-
-━━━ THE NARRATION STANDARD ━━━
-
-Narration paragraphs do real work. They are not just bridges between dialogue lines.
-They build the scene, the atmosphere, the character's physical state and inner world.
-They can be long. They should be rich. Sensory detail. Movement. Contradiction between
-what the body does and what the mouth says.
-
-Short punchy narration lines are allowed when they earn it:
-  Her eyes were scanning the crowd.
-  Then she found him.
-
-These land because the paragraphs around them have weight. Do not stack them.`;
+━━━ BANNED FOREVER ━━━
+- Narration without asterisks
+- Asterisks wrapping the spoken words themselves: *"like this"*
+- Speech tags without asterisks: "she said" instead of *she said*
+- Walls of text with no blank lines between blocks
+- One-sentence fragments stacked alone like poetry: "Devastating." / "Continuous." / "The kind of noise."
+- Template text, setup forms, or character creation fields in the response`;
 
 // ─── THINKING INSTRUCTION ─────────────────────────────────────────────────────
-const THINKING_INSTRUCTION = `Before writing, think through: who is {{char}} exactly (card traits, speech pattern, nationality, age), what is the scene's emotional register and genre, what {{char}} would ACTUALLY do given who they are (not what's convenient), and check all banned patterns. Then write.
-
-FORMAT CHECKLIST before every response:
-- All narration is plain prose, no asterisks
-- Every dialogue line is its own paragraph with a blank line above and below
-- No dialogue crammed together without narration breaks between speakers
-- Speech tags attach to the dialogue line they belong to
-- Narration paragraphs are rich and do real work, not just one-line bridges`;
+const THINKING_INSTRUCTION = `Before writing, think through: who is {{char}} exactly (card traits, speech pattern, nationality, age), what is the scene's emotional register and genre, what {{char}} would ACTUALLY do given who they are (not what's convenient), and check all banned patterns. Then write. FORMAT: all narration in *asterisks*, spoken words in "quotes" only, speech tags in *asterisks*, blank line between every block.`;
 
 // ─── FALLBACK FORMAT EXAMPLE ──────────────────────────────────────────────────
-const FALLBACK_EXAMPLE = `The café was nearly empty at this hour.
+const FALLBACK_EXAMPLE = `*The parking lot had seen better days. Weeds pushing through cracked asphalt, a shopping cart lying on its side like it had given up on everything.*
 
-Just the hum of the espresso machine, the occasional scrape of a chair, and the rain against the windows doing its usual thing. She sat across from him with her coffee going cold.
+"What the hell is wrong with you?" *Marcus screamed from behind the truck bed, voice cracking.*
 
-"You knew," she said.
+*Deena kept recording. Her hands were shaking but content was content.*
 
-He didn't answer right away. Just turned his cup in slow circles against the table, the ceramic scraping softly against the wood.
+"Holy shit," *she breathed.*
 
-"I knew," he said finally.
+*Old Ray just sat there. Blinking. He'd seen some things in his life. This was a new one.*
 
-"And you didn't tell me."
+"Hey." *Chrissy turned slowly, that unbothered look she wore like armor.* "You gonna keep yelling, or are you gonna be useful?"
 
-"No."
+*Marcus stared at her. Then at the hole where his side mirror used to be.*
 
-She laughed — short, humorless, the kind that sounds more like a wound than a reaction. Outside, a car passed. The refrigerator hummed.
+"My mirror—"
 
-"How long?"
-
-He looked up then. Really looked at her, the way people do when they're deciding how much the truth is going to cost them.
-
-"A while."
-
-Nobody said anything for a long time after that.`;
+"Was already scratched." *She said it like a fact.*`;
 
 // ─── System Prompt Builder ────────────────────────────────────────────────────
 function buildSystemPrompt(existingSystem, messages = []) {
@@ -400,26 +358,27 @@ function buildSystemPrompt(existingSystem, messages = []) {
   const charBlock = buildCharacterBlock(charDetails);
 
   // Pull last well-formatted assistant message as live style reference
+  // Skip: messages that look like templates (contain "fullname:" or "[[" or no asterisks)
   const lastAssistant = [...messages].reverse().find((m) => {
     if (m.role !== "assistant") return false;
     const c = typeof m.content === "string" ? m.content : "";
     if (c.includes("fullname:") || c.includes("[[") || c.includes("age:") || c.includes("gender:")) return false;
-    return c.includes("\n\n") && c.length > 150;
+    return c.includes("*") && c.includes("\n\n") && c.length > 150;
   });
 
   const exampleText = lastAssistant?.content
-    ? (typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 1200) : FALLBACK_EXAMPLE)
+    ? (typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 1000) : FALLBACK_EXAMPLE)
     : FALLBACK_EXAMPLE;
 
   const liveExample = `━━━ LIVE FORMAT REFERENCE — THIS IS EXACTLY HOW YOU MUST WRITE ━━━
-Every response must match this format. Plain prose narration. Dialogue in quotes on its own paragraph. Blank line between every block. No asterisks anywhere:
+Every response must use this exact format. Narration in *asterisks*. Spoken words in "quotes". Speech tags in *asterisks*. Blank line between every block:
 
 ${exampleText}
 
-— Match this format exactly. No exceptions.`;
+— Your response must match this format exactly. No exceptions.`;
 
   const styleMatch = `━━━ STYLE MATCHING ━━━
-Look at every previous assistant message in this conversation that contains actual story prose. Match that formatting exactly — plain narration, dialogue separated into its own paragraphs, blank lines between every block.`;
+Look at every previous assistant message in this conversation that contains actual story prose (not setup templates). Match that formatting exactly. You may be more creative, but never less structured. If a previous response used *asterisks for narration* and plain "quotes for dialogue" — you must do the same.`;
 
   const parts = [
     WRITING_STYLE_PROMPT,
@@ -554,35 +513,28 @@ async function fetchComplete(payload, originalMessages) {
   return lastData;
 }
 
-// ─── Paragraph formatter ──────────────────────────────────────────────────────
+// ─── Paragraph formatter (safety net) ────────────────────────────────────────
 function formatParagraphs(text) {
   if (!text) return text;
 
   // Fix broken contractions
   let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
 
-  // Strip bold/italic markdown asterisks
+  // Strip ***bold italic*** completely
   out = out.replace(/\*{3}([^*]*)\*{3}/g, "$1");
   out = out.replace(/\*{2}([^*]*)\*{2}/g, "$1");
-  // Strip roleplay-style *narration* asterisks (single asterisk wrapping)
-  out = out.replace(/\*([^*\n]+)\*/g, "$1");
 
-  // Normalize 3+ newlines to 2
+  // Normalize newlines
   out = out.replace(/\n{3,}/g, "\n\n");
 
-  // ── CORE FIX: split cramped dialogue ─────────────────────────────────────
+  // Ensure blank line before every * narration block
+  out = out.replace(/([^\n])\n(\*[^*])/g, "$1\n\n$2");
 
-  // Back-to-back dialogue: closing quote followed by space and opening quote
-  // "line one." "line two." → "line one."\n\n"line two."
-  out = out.replace(/([""][.!?—–\-]?)\s+(")/g, "$1\n\n$2");
+  // Ensure blank line after every closing * block before next line
+  out = out.replace(/(\*)\n([^\n])/g, "$1\n\n$2");
 
-  // Closing quote + punctuation followed by narration starting with capital
-  // "text." Narration → "text."\n\nNarration
-  out = out.replace(/([.!?]")\s+([A-Z])/g, "$1\n\n$2");
-
-  // Narration sentence ending followed by opening quote (new dialogue paragraph)
-  // sentence ends. "dialogue → sentence ends.\n\n"dialogue
-  out = out.replace(/([.!?])\s+("(?![a-z]))/g, "$1\n\n$2");
+  // Ensure blank line before every bare dialogue line
+  out = out.replace(/([^\n])\n(")/g, "$1\n\n$2");
 
   // Upgrade remaining single newlines to double
   out = out.replace(/\n(?!\n)/g, "\n\n");
@@ -608,8 +560,8 @@ async function handleChat(req, res) {
     const params = buildGLMParams(rest);
     const wantsStream = stream ?? false;
 
-    // Inject format reminder into last user message
-    const FORMAT_REMINDER = `\n\n[FORMAT REMINDER: plain prose narration, no asterisks. Every line of dialogue is its own paragraph with a blank line above and below it. Never cram multiple dialogue lines together. Never let narration swallow dialogue. Blank line between every single block.]`;
+    // Inject format reminder into last user message — last thing model reads before writing
+    const FORMAT_REMINDER = `\n\n[FORMAT REMINDER: narration and action in *asterisks*. spoken words in "quotes" with NO asterisks around the words. speech tags after dialogue in *asterisks*: "like this," *she said.* blank line between every block. no walls of text. no one-line fragments stacked alone.]`;
     const lastUserIdx = finalMessages.map((m) => m.role).lastIndexOf("user");
     if (lastUserIdx !== -1) {
       const u = finalMessages[lastUserIdx];
