@@ -255,91 +255,102 @@ Filler narration — never: "suddenly" "realized" "in that moment" "it was as if
 - Each new character is a clean slate. Previous character traits never carry over.`;
 
 // ─── FORMATTING RULES ─────────────────────────────────────────────────────────
-const FORMATTING_RULES = `━━━ FORMATTING — THE MOST IMPORTANT RULE ━━━
+const FORMATTING_RULES = `━━━ FORMATTING — THE SINGLE MOST IMPORTANT RULE ━━━
 
-Write in flowing novelistic prose. Every response must look exactly like this example:
+This is the ONLY format you are allowed to use. Study every line below.
 
-The kitchen looked like a crime scene.
-Not a violent one. A culinary one. Flour on every surface. Eggshells in places eggshells should not be. A smoke detector that had given up screaming and was now just emitting a sad, intermittent beep like it was accepting its fate.
+━━━ THE RULE ━━━
 
-QT stood at the counter, her hair pulled back, looking like someone who'd started this project with optimism and was now questioning every life choice that had led her here. "Okay. Okay okay okay. The recipe says to fold the—"
+NARRATION and ACTION → always wrapped in *asterisks*
+DIALOGUE (the spoken words) → plain "quotes", NO asterisks around the words themselves
+SPEECH TAG after dialogue → *asterisks* because it is narration
 
-"Fold?" Chrissy leaned over her shoulder, reading the phone screen with her space buns brushing against QT's cheek. Her tattooed hand came up to point at something on the screen, those silver rings glinting under the kitchen lights. "What does fold even mean in this context? Like... gently? Aggressively? With feeling?"
+BLANK LINE between every single block. Always. No exceptions. No walls of text.
 
-"I think it means don't stir?"
+━━━ EXACT FORMAT — COPY THIS PRECISELY ━━━
 
-"That's so vague." Chrissy straightened up, grabbing a spatula like it was a weapon. Her black top shifted as she moved. "I'm gonna stir."
+*The parking lot had seen better days. Weeds pushing through cracked asphalt, a shopping cart lying on its side like it had given up. The kind of place that made parents lock their car doors driving past.*
 
-"Chrissy, no—"
+"What the hell is wrong with you?" *Marcus screamed from behind the truck bed, voice cracking over the ringing in everyone's ears.*
 
-"Chrissy, yes."
+*Deena kept recording. Her hands were shaking but content was content.*
 
-Ludwig watched from his seat at the kitchen island, chopsticks in hand, waiting for whatever disaster was about to unfold. "You know," he said mildly, "most people learn to cook before they stream it."
+"Holy shit," *she breathed, phone still raised.*
 
-"Most people are boring," Chrissy shot back without looking at him. She was too focused on the batter, stirring with the kind of intensity she usually reserved for ranking her chat's worst takes. "Also, I don't need to know how to cook. I need to know how to look good while failing. Which I do."
+*Old Ray just sat there. Blinking. He'd seen some things in his life. This was a new one.*
 
-She wasn't wrong. Even now — smudge of flour on her cheek, hair slightly messier than her usual calculated messiness — she was objectively, annoyingly gorgeous.
+"Hey." *Chrissy turned slowly, that unbothered look she wore like armor sliding into place.* "You gonna keep yelling, or are you gonna be useful?"
 
-QT glanced at her. Then at the batter. Then back at her. "You have flour on your face."
+*Marcus stared at her. Then at the hole where his side mirror used to be.*
 
-"I know."
+"My mirror—"
 
-"You're not gonna wipe it off?"
+"Was already scratched." *She said it like a fact. Like she'd checked before pulling the trigger.*
 
-Chrissy smiled. That smile. "It's aesthetic."
+━━━ THE RULES EXPLAINED ━━━
 
-━━━ RULES ━━━
+NARRATION block — *asterisks* always:
+  RIGHT: *She turned slowly, eyes narrowing as she recognized him.*
+  RIGHT: *The room went still.*
+  WRONG: She turned slowly, eyes narrowing. (no asterisks = wrong)
 
-BLANK LINE between every paragraph. Always. No walls of text. No clumping.
+DIALOGUE + speech tag — quotes then *asterisks*:
+  RIGHT: "I told you not to come here," *she said, not looking up.*
+  RIGHT: "Hey," *Chrissy called out, already walking away.*
+  WRONG: *"I told you not to come here," she said.* (asterisks around the spoken words = wrong)
+  WRONG: "I told you not to come here," she said. (speech tag without asterisks = wrong)
 
-Dialogue lives INSIDE its paragraph with action and reaction — never orphaned alone:
-  WRONG: Her voice rises. / "Did you not just hear me?" / She repeats.
-  RIGHT: Her voice rose. "Did you not just hear me?" The words came out flat. "You just... forgot my name."
+BARE DIALOGUE (no speech tag, no action) — plain quotes only:
+  RIGHT: "I know."
+  RIGHT: "Chrissy, no—"
+  RIGHT: "Chrissy, yes."
 
-Paragraphs are full beats — what's happening, what the character does, what they say, all woven:
-  WRONG: Tanira's mouth opens. / "...Forgot my name." / She repeats.
-  RIGHT: Tanira's mouth opened. Then closed. Her orange eyes narrowed. "...Forgot my name." A beat. "You just... forgot my name."
+NEVER DO THIS:
+  WRONG: Her voice rises. / "Did you not just hear me?" (narration orphaned from context, no asterisks)
+  WRONG: *"I said stop."* (asterisks wrapping the spoken words themselves)
+  WRONG: She said "stop" and looked away. (dialogue buried in narration without proper formatting)
 
-Short back-and-forth CAN get own line — only when the rhythm IS the joke. Rare. Not the default.
+━━━ MULTI-LINE EXCHANGE EXAMPLE ━━━
 
-No *asterisks* around narration. This is prose fiction.
-  WRONG: *Tanira's mouth opens.* *The room goes still.*
-  RIGHT: Tanira's mouth opened. The room went still.
+*Maya was talking — something about the rescue animals, the rehabilitation process. Her hands moved as she talked, animated, full of genuine passion.*
 
-Speech tags never separated from dialogue by a line break:
-  WRONG: "To be fair," / Emi mutters, / "you did introduce yourself like three times—"
-  RIGHT: "To be fair," Emi muttered, not looking up, "you did introduce yourself like three times—"
+"Show me the gecko," *Chrissy said immediately.*
 
-━━━ BANNED ━━━
-- Narration on one line, dialogue orphaned on the next
-- *Asterisks wrapping narration sentences*
-- Every dialogue line as its own isolated paragraph
-- ***Bold italic internal thoughts***
-- Walls of text with zero blank lines
-- Speech tags separated from their dialogue by a line break`;
+*Maya blinked.* "Really? You want to see the gecko?"
+
+"I want to see the gecko."
+
+*Something shifted in Chrissy's expression. The carefully maintained veneer cracked just a fraction — genuine curiosity, actual interest, the kind of expression she never let her stream see.*
+
+━━━ BANNED FOREVER ━━━
+- Narration without asterisks
+- Asterisks wrapping the spoken words themselves: *"like this"*
+- Speech tags without asterisks: "she said" instead of *she said*
+- Walls of text with no blank lines between blocks
+- One-sentence fragments stacked alone like poetry: "Devastating." / "Continuous." / "The kind of noise."
+- Template text, setup forms, or character creation fields in the response`;
 
 // ─── THINKING INSTRUCTION ─────────────────────────────────────────────────────
-const THINKING_INSTRUCTION = `Before writing, think through: who is {{char}} exactly (card traits, speech pattern, nationality, age), what is the scene's emotional register and genre, what {{char}} would ACTUALLY do given who they are (not what's convenient), and check all banned patterns. Then write.`;
+const THINKING_INSTRUCTION = `Before writing, think through: who is {{char}} exactly (card traits, speech pattern, nationality, age), what is the scene's emotional register and genre, what {{char}} would ACTUALLY do given who they are (not what's convenient), and check all banned patterns. Then write. FORMAT: all narration in *asterisks*, spoken words in "quotes" only, speech tags in *asterisks*, blank line between every block.`;
 
 // ─── FALLBACK FORMAT EXAMPLE ──────────────────────────────────────────────────
-const FALLBACK_EXAMPLE = `The kitchen looked like a crime scene.
-Not a violent one. A culinary one. Flour on every surface. Eggshells in places eggshells should not be.
+const FALLBACK_EXAMPLE = `*The parking lot had seen better days. Weeds pushing through cracked asphalt, a shopping cart lying on its side like it had given up on everything.*
 
-QT stood at the counter, her hair pulled back, looking like someone who'd started this project with optimism and was now questioning every life choice that had led her here. "Okay. Okay okay okay. The recipe says to fold the—"
+"What the hell is wrong with you?" *Marcus screamed from behind the truck bed, voice cracking.*
 
-"Fold?" Chrissy leaned over her shoulder. "What does fold even mean in this context? Like... gently? Aggressively? With feeling?"
+*Deena kept recording. Her hands were shaking but content was content.*
 
-"I think it means don't stir?"
+"Holy shit," *she breathed.*
 
-"That's so vague." Chrissy straightened up, grabbing a spatula like it was a weapon. "I'm gonna stir."
+*Old Ray just sat there. Blinking. He'd seen some things in his life. This was a new one.*
 
-"Chrissy, no—"
+"Hey." *Chrissy turned slowly, that unbothered look she wore like armor.* "You gonna keep yelling, or are you gonna be useful?"
 
-"Chrissy, yes."
+*Marcus stared at her. Then at the hole where his side mirror used to be.*
 
-Ludwig watched from his seat at the kitchen island. "You know," he said mildly, "most people learn to cook before they stream it."
+"My mirror—"
 
-"Most people are boring," Chrissy shot back. "Also, I don't need to know how to cook. I need to know how to look good while failing. Which I do."`;
+"Was already scratched." *She said it like a fact.*`;
 
 // ─── System Prompt Builder ────────────────────────────────────────────────────
 function buildSystemPrompt(existingSystem, messages = []) {
@@ -347,25 +358,27 @@ function buildSystemPrompt(existingSystem, messages = []) {
   const charBlock = buildCharacterBlock(charDetails);
 
   // Pull last well-formatted assistant message as live style reference
+  // Skip: messages that look like templates (contain "fullname:" or "[[" or no asterisks)
   const lastAssistant = [...messages].reverse().find((m) => {
     if (m.role !== "assistant") return false;
     const c = typeof m.content === "string" ? m.content : "";
-    return c.includes("\n\n") && c.length > 100;
+    if (c.includes("fullname:") || c.includes("[[") || c.includes("age:") || c.includes("gender:")) return false;
+    return c.includes("*") && c.includes("\n\n") && c.length > 150;
   });
 
   const exampleText = lastAssistant?.content
-    ? (typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 800) : FALLBACK_EXAMPLE)
+    ? (typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 1000) : FALLBACK_EXAMPLE)
     : FALLBACK_EXAMPLE;
 
-  const liveExample = `━━━ FORMAT REFERENCE — COPY THIS STRUCTURE EXACTLY ━━━
-Every response must be formatted exactly like this. Blank lines between every paragraph. Dialogue woven into narration. No asterisks. No walls of text. No orphaned dialogue lines:
+  const liveExample = `━━━ LIVE FORMAT REFERENCE — THIS IS EXACTLY HOW YOU MUST WRITE ━━━
+Every response must use this exact format. Narration in *asterisks*. Spoken words in "quotes". Speech tags in *asterisks*. Blank line between every block:
 
 ${exampleText}
 
-— Match this structure in every single response. No exceptions.`;
+— Your response must match this format exactly. No exceptions.`;
 
   const styleMatch = `━━━ STYLE MATCHING ━━━
-Look at every previous assistant message in this conversation. Match that formatting exactly — paragraph breaks, how dialogue sits inside narration, sentence rhythm. You may be more creative and expressive, but never less structured.`;
+Look at every previous assistant message in this conversation that contains actual story prose (not setup templates). Match that formatting exactly. You may be more creative, but never less structured. If a previous response used *asterisks for narration* and plain "quotes for dialogue" — you must do the same.`;
 
   const parts = [
     WRITING_STYLE_PROMPT,
@@ -504,14 +517,29 @@ async function fetchComplete(payload, originalMessages) {
 function formatParagraphs(text) {
   if (!text) return text;
 
+  // Fix broken contractions
   let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
-  out = out.replace(/\*([^*\n]{4,})\*/g, "$1");
-  out = out.replace(/\*{2,}/g, "");
+
+  // Strip ***bold italic*** completely
+  out = out.replace(/\*{3}([^*]*)\*{3}/g, "$1");
+  out = out.replace(/\*{2}([^*]*)\*{2}/g, "$1");
+
+  // Normalize newlines
   out = out.replace(/\n{3,}/g, "\n\n");
-  out = out.replace(/"(\s+)([A-Z])/g, '"\n\n$2');
-  out = out.replace(/([.!?…])(\s+)(")/g, '$1\n\n$3');
-  out = out.replace(/([.!?…])(\s+)([A-Z][a-z])/g, '$1\n\n$3');
+
+  // Ensure blank line before every * narration block
+  out = out.replace(/([^\n])\n(\*[^*])/g, "$1\n\n$2");
+
+  // Ensure blank line after every closing * block before next line
+  out = out.replace(/(\*)\n([^\n])/g, "$1\n\n$2");
+
+  // Ensure blank line before every bare dialogue line
+  out = out.replace(/([^\n])\n(")/g, "$1\n\n$2");
+
+  // Upgrade remaining single newlines to double
   out = out.replace(/\n(?!\n)/g, "\n\n");
+
+  // Final cleanup
   out = out.replace(/\n{3,}/g, "\n\n");
 
   return out.trim();
@@ -533,7 +561,7 @@ async function handleChat(req, res) {
     const wantsStream = stream ?? false;
 
     // Inject format reminder into last user message — last thing model reads before writing
-    const FORMAT_REMINDER = `\n\n[FORMAT: blank line between every paragraph. dialogue woven into narration, never orphaned alone. no asterisks around narration. no walls of text. match the style of previous responses exactly.]`;
+    const FORMAT_REMINDER = `\n\n[FORMAT REMINDER: narration and action in *asterisks*. spoken words in "quotes" with NO asterisks around the words. speech tags after dialogue in *asterisks*: "like this," *she said.* blank line between every block. no walls of text. no one-line fragments stacked alone.]`;
     const lastUserIdx = finalMessages.map((m) => m.role).lastIndexOf("user");
     if (lastUserIdx !== -1) {
       const u = finalMessages[lastUserIdx];
