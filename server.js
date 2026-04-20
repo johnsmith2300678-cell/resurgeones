@@ -318,6 +318,14 @@ function buildSystemPrompt(existingSystem, messages = []) {
   const charDetails = extractCharacterDetails(messages);
   const charBlock = buildCharacterBlock(charDetails);
 
+  // Pull the last assistant message as a live style example
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+  const liveExample = lastAssistant?.content
+    ? `━━━ LIVE STYLE REFERENCE — THIS IS EXACTLY HOW YOU MUST FORMAT ━━━\nThe response below is from this same conversation. Match its paragraph structure, spacing, and prose style precisely. Every response you write must look like this:\n\n${typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 800) : ""}\n\n— End of reference. Your response must match this format exactly. Blank lines between paragraphs. Dialogue woven into narration. No asterisks. No orphaned lines.`
+    : "";
+
+  const styleMatch = `━━━ STYLE RULE ━━━\nLook at every previous assistant message in this conversation. Match that formatting exactly — paragraph breaks, how dialogue sits inside narration, sentence rhythm. You may be more creative and expressive, but never less structured. If there are no previous messages, follow the formatting example above.`;
+
   const parts = [
     WRITING_STYLE_PROMPT,
     charBlock || "",
@@ -325,6 +333,8 @@ function buildSystemPrompt(existingSystem, messages = []) {
       ? "━━━ ORIGINAL CHARACTER CARD ━━━\n" + charDetails.raw
       : existingSystem?.trim() || "",
     FORMATTING_RULES,
+    liveExample,
+    styleMatch,
     "━━━ THINK BEFORE YOU WRITE ━━━\n" + THINKING_INSTRUCTION,
   ];
 
