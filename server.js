@@ -319,10 +319,37 @@ function buildSystemPrompt(existingSystem, messages = []) {
   const charBlock = buildCharacterBlock(charDetails);
 
   // Pull the last assistant message as a live style example
-  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-  const liveExample = lastAssistant?.content
-    ? `━━━ LIVE STYLE REFERENCE — THIS IS EXACTLY HOW YOU MUST FORMAT ━━━\nThe response below is from this same conversation. Match its paragraph structure, spacing, and prose style precisely. Every response you write must look like this:\n\n${typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 800) : ""}\n\n— End of reference. Your response must match this format exactly. Blank lines between paragraphs. Dialogue woven into narration. No asterisks. No orphaned lines.`
-    : "";
+  // Only use it if it looks well-formatted (has blank lines = double newlines)
+  const lastAssistant = [...messages].reverse().find((m) => {
+    if (m.role !== "assistant") return false;
+    const c = typeof m.content === "string" ? m.content : "";
+    return c.includes("\n\n") && c.length > 100;
+  });
+
+  const FALLBACK_EXAMPLE = `The kitchen looked like a crime scene.
+Not a violent one. A culinary one. Flour on every surface. Eggshells in places eggshells should not be. A smoke detector that had given up screaming and was now just emitting a sad, intermittent beep like it was accepting its fate.
+
+QT stood at the counter, her hair pulled back, looking like someone who'd started this project with optimism and was now questioning every life choice that had led her here. "Okay. Okay okay okay. The recipe says to fold the—"
+
+"Fold?" Chrissy leaned over her shoulder, reading the phone screen with her space buns brushing against QT's cheek. "What does fold even mean in this context? Like... gently? Aggressively? With feeling?"
+
+"I think it means don't stir?"
+
+"That's so vague." Chrissy straightened up, grabbing a spatula like it was a weapon. "I'm gonna stir."
+
+"Chrissy, no—"
+
+"Chrissy, yes."
+
+Ludwig watched from his seat at the kitchen island, chopsticks in hand. "You know," he said mildly, "most people learn to cook before they stream it."
+
+"Most people are boring," Chrissy shot back without looking at him. "Also, I don't need to know how to cook. I need to know how to look good while failing. Which I do."`;
+
+  const exampleText = lastAssistant?.content
+    ? (typeof lastAssistant.content === "string" ? lastAssistant.content.slice(0, 800) : FALLBACK_EXAMPLE)
+    : FALLBACK_EXAMPLE;
+
+  const liveExample = `━━━ FORMAT REFERENCE — COPY THIS EXACTLY ━━━\nEvery response you write must be formatted exactly like this. Blank lines between every paragraph. Dialogue woven into narration, never orphaned alone. No asterisks around narration. No walls of text:\n\n${exampleText}\n\n— Your response must match this structure. No exceptions.`;
 
   const styleMatch = `━━━ STYLE RULE ━━━\nLook at every previous assistant message in this conversation. Match that formatting exactly — paragraph breaks, how dialogue sits inside narration, sentence rhythm. You may be more creative and expressive, but never less structured. If there are no previous messages, follow the formatting example above.`;
 
