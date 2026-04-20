@@ -1050,7 +1050,6 @@ function formatParagraphs(text) {
   let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
 
   // Remove asterisks wrapping narration — *text* → text
-  // But preserve single asterisks used for emphasis on one word
   out = out.replace(/\*([^*\n]{4,})\*/g, "$1");
 
   // Remove ***bold italic*** internal thoughts — strip all asterisks
@@ -1059,8 +1058,16 @@ function formatParagraphs(text) {
   // Normalize all newlines — collapse 3+ into exactly 2
   out = out.replace(/\n{3,}/g, "\n\n");
 
-  // Ensure blank line between every paragraph
-  // Single newlines get upgraded to double
+  // Force blank line after every sentence-ending quote followed by narration
+  out = out.replace(/"(\s+)([A-Z])/g, '"\n\n$2');
+
+  // Force blank line after narration sentences before new dialogue
+  out = out.replace(/([.!?…])(\s+)(")/g, '$1\n\n$3');
+
+  // Force blank line after narration sentences before new narration starting with capital
+  out = out.replace(/([.!?…])(\s+)([A-Z][a-z])/g, '$1\n\n$3');
+
+  // Upgrade any remaining single newlines to double
   out = out.replace(/\n(?!\n)/g, "\n\n");
 
   // Final cleanup of 3+ newlines
