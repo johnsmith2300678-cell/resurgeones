@@ -442,7 +442,7 @@ async function fetchComplete(payload, originalMessages) {
   }
 
   if (lastData?.choices?.[0]?.message) {
-    lastData.choices[0].message.content = formatParagraphs(fullContent);
+    lastData.choices[0].message.content = fullContent;
     lastData.choices[0].finish_reason = "stop";
   }
 
