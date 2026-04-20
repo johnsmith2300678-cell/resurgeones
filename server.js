@@ -449,23 +449,6 @@ async function fetchComplete(payload, originalMessages) {
   return lastData;
 }
 
-// ─── Paragraph formatter ──────────────────────────────────────────────────────
-function formatParagraphs(text) {
-  if (!text) return text;
-
-  let out = text.replace(/(\w)'\s+(\w)/g, "$1'$2");
-  out = out.replace(/\*([^*\n]{4,})\*/g, "$1");
-  out = out.replace(/\*{2,}/g, "");
-  out = out.replace(/\n{3,}/g, "\n\n");
-  out = out.replace(/"(\s+)([A-Z])/g, '"\n\n$2');
-  out = out.replace(/([.!?…])(\s+)(")/g, '$1\n\n$3');
-  out = out.replace(/([.!?…])(\s+)([A-Z][a-z])/g, '$1\n\n$3');
-  out = out.replace(/\n(?!\n)/g, "\n\n");
-  out = out.replace(/\n{3,}/g, "\n\n");
-
-  return out.trim();
-}
-
 // ─── Chat handler ─────────────────────────────────────────────────────────────
 async function handleChat(req, res) {
   try {
